@@ -4,6 +4,8 @@ import java.net.*;
 
 public class Master {
 
+	private static final int SlaveNode = 4;
+	
 	public static void main(String[] args) {
 		try {
 			Client mSocketRunnable = new Client(new Socket(args[0], Integer.valueOf(args[1])), args[2]);
@@ -29,16 +31,36 @@ public class Master {
 	    	
 	    	try {
 	    	    ObjectOutputStream out = new ObjectOutputStream(mSocket.getOutputStream());
-	    	    byte[] buffer = new byte[1024];
 	    	    
-	    	    int count = 0;
-	    	    BufferedInputStream bin = new BufferedInputStream(new FileInputStream(filename));
-	    	    while((count = bin.read(buffer)) > 0) {
-	    	    	out.write(buffer, 0, count);
-	    	    	out.flush();
+	    	    BufferedReader br = new BufferedReader(new FileReader(filename));
+	    	    String s = null;
+	    	    
+	    	    /* Count the total Line */
+	    	    int len = 0;
+	    	    while((s = br.readLine()) != null) len++;
+	    	    br.close();
+	    	    
+	    	    int lenInOnePart = len/SlaveNode;
+	    	    
+	    	    /* Send line */
+	    	    int idx = 0;
+	    	    br = new BufferedReader(new FileReader(filename));
+	    	    while((s = br.readLine()) != null && idx < lenInOnePart) {
+	    	    	byte[] buf = s.getBytes();
+	    	    	if (s.length() <= 1024) {
+	    	    		out.write(buf, 0, buf.length);
+	    	    		out.flush();
+	    	    	}
+	    	    	else {
+	    	    		for (int i = 0; i < buf.length; i += 1024) {
+	    	    			out.write(buf, i, (i+1024 >= buf.length) ? buf.length-i : 1024);
+	    	    		}
+	    	    		out.flush();
+	    	    	}
+	    	    	idx++;
 	    	    }
-	    	    
-	    	    bin.close();
+
+	    	    br.close();
 	    	    mSocket.close();
 	    	} catch (Exception e) {
 	    	    e.printStackTrace();

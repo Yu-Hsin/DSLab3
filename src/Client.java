@@ -9,9 +9,9 @@ public class Client {
 
     private ObjectInputStream inputStream;
     private ServerSocket socketclient;
-    private static int port2client;
+    private static int port2client = 2000;
 
-    // open a socket for connetion to the master
+    // open a socket for connection to the master
     public void openSocket() {
 	try {
 	    socketclient = new ServerSocket(port2client);
