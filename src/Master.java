@@ -1,4 +1,3 @@
-
 import java.io.*;
 import java.net.*;
 
@@ -16,17 +15,17 @@ public class Master {
 			e.printStackTrace();
 		}
 	}
-	
-	public static class Client implements Runnable {
-	    private Socket mSocket;
-	    private String filename;
-	    	
-	    public Client(Socket s, String fname) {
-	    	mSocket = s;
-	    	filename = fname;
-	    }
 
-	    @Override
+    public static class Client implements Runnable {
+    	private Socket mSocket;
+    	private String filename;
+
+    	public Client(Socket s, String fname) {
+    		mSocket = s;
+    		filename = fname;
+    	}
+
+    	@Override
 	    public void run() {
 	    	
 	    	try {
@@ -65,7 +64,8 @@ public class Master {
 	    	} catch (Exception e) {
 	    	    e.printStackTrace();
 	    	}
-	    }
-	}
-	
+    	}
+    	
+    }
+
 }
