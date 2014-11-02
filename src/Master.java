@@ -7,7 +7,7 @@ public class Master {
 
     public static void main(String[] args) {
 	try {
-	    Client mSocketRunnable = new Client(new Socket(args[0], Integer.valueOf(args[1])), args[2]);
+	    SendFileThread mSocketRunnable = new SendFileThread(new Socket(args[0], Integer.valueOf(args[1])), args[2]);
 	    Thread t = new Thread(mSocketRunnable);
 	    t.start();
 
@@ -16,11 +16,11 @@ public class Master {
 	}
     }
 
-    public static class Client implements Runnable {
+    public static class SendFileThread implements Runnable {
 	private Socket mSocket;
 	private String filename;
 
-	public Client(Socket s, String fname) {
+	public SendFileThread(Socket s, String fname) {
 	    mSocket = s;
 	    filename = fname;
 	}
