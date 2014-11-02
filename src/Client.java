@@ -36,7 +36,7 @@ public class Client {
 	    String str = "";
 	    str = br.readLine(); // read the number of the split file
 	    String fnName = String.format("%04d", Integer.parseInt(str));
-	    BufferedWriter bw = new BufferedWriter(new FileWriter(fnName));
+	    BufferedWriter bw = new BufferedWriter(new FileWriter("Part-" + fnName));
 	    while ((str = br.readLine()) != null) {
 		System.out.println(str);
 		bw.write(str);
