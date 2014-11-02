@@ -11,6 +11,15 @@ public class Master {
 	SendFileThread mSocketRunnable = new SendFileThread(ips, Integer.parseInt(args[0]), args[1]);
 	Thread t = new Thread(mSocketRunnable);
 	t.start();
+	try {
+	    t.join();
+	} catch (InterruptedException e) {
+	    e.printStackTrace();
+	}
+
+	SendJarThread mJarSocketRunnable = new SendJarThread(ips, Integer.parseInt(args[0]), args[2]);
+	t = new Thread(mJarSocketRunnable);
+	t.start();
     }
 
     public static class SendFileThread implements Runnable {
@@ -81,4 +90,52 @@ public class Master {
 
     }
 
+
+
+    public static class SendJarThread implements Runnable{
+	private Socket mSocket = null;
+	private String filename;
+	private String[] slaves;
+	private int port;
+
+	public SendJarThread(String[] s, int p, String fname) {
+	    slaves = s;
+	    port = p;
+	    filename = fname;
+	}
+
+	@Override
+	public void run() {
+	    try {
+
+		File jarFile = new File(filename);
+		BufferedInputStream bis = new BufferedInputStream(new FileInputStream(jarFile));
+		
+		for (int slaveIdx = 0; slaveIdx < SlaveNode; slaveIdx++) {
+		    System.out.println(slaves[slaveIdx]);
+		    mSocket = new Socket(slaves[slaveIdx], port);
+
+		    OutputStream out = mSocket.getOutputStream();
+		    
+
+		    byte [] mybytearray  = new byte [(int)jarFile.length()];
+		    bis.read(mybytearray,0,mybytearray.length);
+
+
+		    out.write(mybytearray,0,mybytearray.length);
+		    out.flush();
+		    System.out.println("Done.");
+
+		} 
+		
+		bis.close();
+	    }
+	    catch (Exception e) {
+		e.printStackTrace();
+	    }
+	}
+
+
+
+    }
 }
