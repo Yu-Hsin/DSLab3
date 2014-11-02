@@ -3,7 +3,7 @@ import java.net.*;
 
 public class Master {
 
-	private static final int SlaveNode = 4;
+	private static final int SlaveNode = 1;
 	
 	public static void main(String[] args) {
 		try {
@@ -42,22 +42,28 @@ public class Master {
 	    	    int lenInOnePart = len/SlaveNode;
 	    	    
 	    	    /* Send line */
-	    	    int idx = 0;
 	    	    br = new BufferedReader(new FileReader(filename));
-	    	    while((s = br.readLine()) != null && idx < lenInOnePart) {
-	    	    	byte[] buf = s.getBytes();
-	    	    	if (s.length() <= 1024) {
-	    	    		out.write(buf, 0, buf.length);
-	    	    		out.flush();
-	    	    	}
-	    	    	else {
-	    	    		for (int i = 0; i < buf.length; i += 1024) {
-	    	    			out.write(buf, i, (i+1024 >= buf.length) ? buf.length-i : 1024);
-	    	    		}
-	    	    		out.flush();
-	    	    	}
-	    	    	idx++;
+	    	    
+	    	    for (int i = 0; i < SlaveNode; i++) {
+	    	    	int idx = 0;
+	    	    	out.writeChars("part-00"+i);
+	    	    	
+	    	    	while((s = br.readLine()) != null && idx < lenInOnePart) {
+		    	    	byte[] buf = s.getBytes();
+		    	    	if (s.length() <= 1024) {
+		    	    		out.write(buf, 0, buf.length);
+		    	    		out.flush();
+		    	    	}
+		    	    	else {
+		    	    		for (int j = 0; j < buf.length; j += 1024) {
+		    	    			out.write(buf, j, (j+1024 >= buf.length) ? buf.length-j : 1024);
+		    	    		}
+		    	    		out.flush();
+		    	    	}
+		    	    	idx++;
+		    	    }
 	    	    }
+	    	    
 
 	    	    br.close();
 	    	    mSocket.close();
