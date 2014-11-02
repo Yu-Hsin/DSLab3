@@ -60,7 +60,17 @@ public class Client {
 	    BufferedReader br = new BufferedReader(new InputStreamReader(
 		    inputStream));
 	    String str = "";
-	    String execName = br.readLine();
+	    
+	    String execName = "aaa.jar";//br.readLine();
+	    BufferedWriter bw = new BufferedWriter(new FileWriter(execName));
+	    
+	    while ((str = br.readLine()) != null) {
+		//System.out.println(str);
+		bw.write(str);
+		bw.write("\n");
+	    }
+	    bw.close();
+	    
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
@@ -71,7 +81,7 @@ public class Client {
 	Client client = new Client();
 	client.openSocket();   // create a socket for listenting to the master node
 	client.downloadFile(); // download the split file from the master node
-	//client.downloadExec();
+	client.downloadExec();
     }
 
 }
