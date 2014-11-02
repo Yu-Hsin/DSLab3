@@ -34,12 +34,15 @@ public class Client {
 	    BufferedReader br = new BufferedReader(new InputStreamReader(
 		    inputStream));
 	    String str = "";
+	    
 	    str = br.readLine(); // read the number of the split file
 	    String fnName = String.format("%04d", Integer.parseInt(str));
 	    BufferedWriter bw = new BufferedWriter(new FileWriter("Part-" + fnName));
+	    
 	    while ((str = br.readLine()) != null) {
-		System.out.println(str);
+		//System.out.println(str);
 		bw.write(str);
+		bw.write("\n");
 	    }
 	    bw.close();
 	} catch (IOException e) {
