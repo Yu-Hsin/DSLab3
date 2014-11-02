@@ -14,7 +14,7 @@ public class Client {
     private static int port2client = 2000;
 
     /**
-     * open a socket for connetion to the master
+     * open a socket for connection to the master
      */
     public void openSocket() {
 	try {
@@ -38,7 +38,7 @@ public class Client {
 	    String fnName = String.format("%04d", Integer.parseInt(str));
 	    BufferedWriter bw = new BufferedWriter(new FileWriter(fnName));
 	    while ((str = br.readLine()) != null) {
-		// System.out.println(str);
+		System.out.println(str);
 		bw.write(str);
 	    }
 	    bw.close();
