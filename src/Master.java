@@ -3,26 +3,27 @@ import java.net.*;
 
 public class Master {
 
-    private static final int SlaveNode = 1;
+    private static final int SlaveNode = 2;
+
+    private static String[] ips = { "ghc53.ghc.andrew.cmu.edu",
+	    "ghc52.ghc.andrew.cmu.edu" };
 
     public static void main(String[] args) {
-	try {
-
-	    SendFileThread mSocketRunnable = new SendFileThread(new Socket(args[0], Integer.valueOf(args[1])), args[2]);
-	    Thread t = new Thread(mSocketRunnable);
-	    t.start();
-
-	} catch (IOException e) {
-	    e.printStackTrace();
-	}
+	SendFileThread mSocketRunnable = new SendFileThread(ips,
+		Integer.parseInt(args[0]), args[1]);
+	Thread t = new Thread(mSocketRunnable);
+	t.start();
     }
 
     public static class SendFileThread implements Runnable {
-	private Socket mSocket;
+	private Socket mSocket = null;
 	private String filename;
+	private String[] slaves;
+	private int port;
 
-	public SendFileThread(Socket s, String fname) {
-	    mSocket = s;
+	public SendFileThread(String[] s, int p, String fname) {
+	    slaves = s;
+	    port = p;
 	    filename = fname;
 	}
 
@@ -30,8 +31,6 @@ public class Master {
 	public void run() {
 
 	    try {
-		ObjectOutputStream out = new ObjectOutputStream(
-			mSocket.getOutputStream());
 
 		BufferedReader br = new BufferedReader(new FileReader(filename));
 		String s = null;
@@ -42,34 +41,46 @@ public class Master {
 		    len++;
 		br.close();
 
-		int lenInOnePart = len / SlaveNode;
+		int lenInOnePart = (int) Math.ceil((double) len
+			/ (double) SlaveNode);
 
 		/* Send line */
 		br = new BufferedReader(new FileReader(filename));
 
-		for (int i = 0; i < SlaveNode; i++) {
-		    int idx = 0;
-		    out.writeChars(i + "\n");
+		for (int slaveIdx = 0; slaveIdx < SlaveNode; slaveIdx++) {
+		    System.out.println(slaves[slaveIdx]);
+		    mSocket = new Socket(slaves[slaveIdx], port);
 
-		    while ((s = br.readLine()) != null && idx < lenInOnePart) {
-			byte[] buf = s.getBytes();
+		    ObjectOutputStream out = new ObjectOutputStream(
+			    mSocket.getOutputStream());
+
+		    int idx = 0;
+
+		    out.write((slaveIdx + "\n").getBytes());
+		    out.flush();
+
+		    while (idx < lenInOnePart && (s = br.readLine()) != null) {
+			System.out.println(s + " " + idx);
+			byte[] buf = (s + "\n").getBytes();
+
 			if (s.length() <= 1024) {
 			    out.write(buf, 0, buf.length);
 			    out.flush();
 			} else {
 			    for (int j = 0; j < buf.length; j += 1024) {
+
 				out.write(buf, j,
 					(j + 1024 >= buf.length) ? buf.length
 						- j : 1024);
+				out.flush();
 			    }
-			    out.flush();
 			}
+
 			idx++;
 		    }
 		}
-
-		br.close();
 		mSocket.close();
+		br.close();
 	    } catch (Exception e) {
 		e.printStackTrace();
 	    }
