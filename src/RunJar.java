@@ -1,14 +1,14 @@
-import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 
 
 public class RunJar {
-    public static void main (String [] args) {
-	Runtime rt = Runtime.getRuntime();
-	try {
-	    Process pr = rt.exec("echo aaaaa");
-	} catch (IOException e) {
-	    // TODO Auto-generated catch block
-	    e.printStackTrace();
-	}
+    public static void main (String [] args) throws Exception {
+	Class<?> myClass = Class.forName("HelloWorld");
+	Constructor<?> myCons = myClass.getConstructor();
+	Object object = myCons.newInstance();
+	Method method = null;
+	method = object.getClass().getMethod("mapper");
+	method.invoke(object);
     }
 }
