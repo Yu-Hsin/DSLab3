@@ -14,7 +14,7 @@ public class Client {
     private static int port2client = 2000;
 
     /**
-     * open a socket for connetion to the master
+     * open a socket for connection to the master
      */
     public void openSocket() {
 	try {
@@ -34,12 +34,15 @@ public class Client {
 	    BufferedReader br = new BufferedReader(new InputStreamReader(
 		    inputStream));
 	    String str = "";
+	    
 	    str = br.readLine(); // read the number of the split file
 	    String fnName = String.format("%04d", Integer.parseInt(str));
-	    BufferedWriter bw = new BufferedWriter(new FileWriter(fnName));
+	    BufferedWriter bw = new BufferedWriter(new FileWriter("Part-" + fnName));
+	    
 	    while ((str = br.readLine()) != null) {
-		// System.out.println(str);
+		//System.out.println(str);
 		bw.write(str);
+		bw.write("\n");
 	    }
 	    bw.close();
 	} catch (IOException e) {
@@ -57,7 +60,17 @@ public class Client {
 	    BufferedReader br = new BufferedReader(new InputStreamReader(
 		    inputStream));
 	    String str = "";
-	    String execName = br.readLine();
+	    
+	    String execName = "aaa.jar";//br.readLine();
+	    BufferedWriter bw = new BufferedWriter(new FileWriter(execName));
+	    
+	    while ((str = br.readLine()) != null) {
+		//System.out.println(str);
+		bw.write(str);
+		bw.write("\n");
+	    }
+	    bw.close();
+	    
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
@@ -68,7 +81,7 @@ public class Client {
 	Client client = new Client();
 	client.openSocket();   // create a socket for listenting to the master node
 	client.downloadFile(); // download the split file from the master node
-	//client.downloadExec();
+	client.downloadExec();
     }
 
 }
