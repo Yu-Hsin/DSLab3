@@ -1,0 +1,29 @@
+Master: ghc53.ghc.andrew.cmu.edu
+
+Mapper: 3
+ghc54.ghc.andrew.cmu.edu
+ghc55.ghc.andrew.cmu.edu
+ghc56.ghc.andrew.cmu.edu
+
+Reducer: 3
+ghc57.ghc.andrew.cmu.edu
+ghc58.ghc.andrew.cmu.edu
+ghc59.ghc.andrew.cmu.edu
+
+MapperClass:
+NaiveBayes
+
+MapperFunction:
+map
+
+ReducerClass:
+NaiveBayes
+
+ReducerFunction:
+reduce
+
+Number of Mapper:
+1
+
+Number of Reducer:
+1

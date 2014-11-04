@@ -7,14 +7,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class MapperClient { //rename to MapperClient
+public class MapperClient { // rename to MapperClient
 
     private ObjectInputStream inputStream;
     private ServerSocket socketclient;
     private static int port2client = 2000;
+    private String mapperClass = "", mapperFunction = ""; //mapperClass = run
 
     /**
      * open a socket for connection to the master
@@ -25,6 +28,10 @@ public class MapperClient { //rename to MapperClient
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
+    }
+
+    public void loadConfig(String fnName) {
+
     }
 
     /**
@@ -64,36 +71,56 @@ public class MapperClient { //rename to MapperClient
 	    DataInputStream dis = new DataInputStream(in);
 	    String fileName = dis.readUTF();
 	    FileOutputStream os = new FileOutputStream(fileName);
-	    
+
 	    byte[] byteArray = new byte[1024];
 	    int byteRead = 0;
-	        
-	    while((byteRead = dis.read(byteArray, 0, byteArray.length))!= -1)
+
+	    while ((byteRead = dis.read(byteArray, 0, byteArray.length)) != -1)
 		os.write(byteArray, 0, byteRead);
-	    
+
 	    os.close();
-	    
+
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
     }
-    
-    public void runJar() {
-	
+
+    public void execute() {
+
+	Process pro;
+	try {
+	    pro = Runtime.getRuntime().exec("javac " + mapperClass + ".java" );
+	    pro.waitFor();
+	    Class<?> myClass = Class.forName(mapperClass);
+	    Constructor<?> myCons = myClass.getConstructor();
+	    Object object = myCons.newInstance();
+	    Method method = null;
+	    method = object.getClass().getMethod(mapperFunction);
+	    method.invoke(object);
+	} catch (Exception e) {
+	    e.printStackTrace();
+	}
+
+	// ip.1, ip.2, ip.3
     }
-    
+
     public void distribute() {
-	
+	//
     }
 
     public static void main(String[] args) {
 	MapperClient client = new MapperClient();
-	client.openSocket(); // create a socket for listenting to the master node
+	client.loadConfig(args[0]);
+	client.openSocket(); // create a socket for listenting to the master
+			     // node
+	// communication (get reducer ip, master ip)
+
 	client.downloadFile(); // download the split file from the master node
 	client.downloadExec(); // download the jar file from the master node
-	client.runJar(); //execute the jar file, generate intermediate file
-	//client.distribute() //send same keys to same reducers, tell the master
-	
+	client.execute(); // execute the jar file, generate intermediate file
+	// client.distribute() //send same keys to same reducers, tell the
+	// master
+
     }
 
 }
