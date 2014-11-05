@@ -1,6 +1,4 @@
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
@@ -108,7 +106,6 @@ public class ReducerClient {
 
     
     public void execute() {
-	
 	Process pro;
 	try {
 	    pro = Runtime.getRuntime().exec("javac " + reducerClass + ".java" ); //compile
