@@ -5,29 +5,51 @@ public class Master {
 
     private static final int SlaveNode = 1;
 
-    private static String[] ips = {"128.237.183.43"};
+    private static String[] ips = {"ghc53.ghc.andrew.cmu.edu"};
 
     //private static String[] ips = { "ghc53.ghc.andrew.cmu.edu",
     //	    "ghc52.ghc.andrew.cmu.edu" };
 
     public static void main(String[] args) {
-	SendFileThread mSocketRunnable = new SendFileThread(ips,
-		Integer.parseInt(args[0]), args[1]);
-	Thread t = new Thread(mSocketRunnable);
-	t.start();
+
 	try {
+	    int mapperPort = Integer.parseInt(args[0]);
+	    
+	    SendFileThread mSocketRunnable = new SendFileThread(ips, mapperPort, args[1]);
+	    Thread t = new Thread(mSocketRunnable);
+	    t.start();
 	    t.join();
+	    SendJarThread mJarSocketRunnable = new SendJarThread(ips, mapperPort, args[2]);
+	    t = new Thread(mJarSocketRunnable);
+	    t.start();
+	    t.join();
+	    
+	    
+	    
+	    
 	} catch (InterruptedException e) {
 	    e.printStackTrace();
 	}
-
-	SendJarThread mJarSocketRunnable = new SendJarThread(ips, Integer.parseInt(args[0]), args[2]);
-	t = new Thread(mJarSocketRunnable);
-	t.start();
-	
-	
     }
 
+    public static class SendInitialInfoThread implements Runnable {
+	private Socket mSocket = null;
+	private String[] slaves;
+	private int port;
+	private int reducerNum;
+
+	public SendInitialInfoThread(String[] s, int p, int n) {
+	    slaves = s;
+	    port = p;
+	    reducerNum = n;
+	}
+	
+	@Override
+	public void run() {
+	    
+	}
+    }
+    
     public static class SendFileThread implements Runnable {
 	private Socket mSocket = null;
 	private String filename;
@@ -128,8 +150,8 @@ public class Master {
 		    BufferedInputStream bis = new BufferedInputStream(new FileInputStream(jarFile));
 
 		    dout.writeUTF(filename);
-		    
-		    
+
+
 		    byte[] buffer = new byte[1024];
 		    int count = 0;
 		    while((count = bis.read(buffer)) > 0) {
@@ -137,10 +159,10 @@ public class Master {
 			dout.flush();
 		    }
 		    System.out.println("Done.");
-		    
+
 		    bis.close();
 		} 
-		
+
 		mSocket.close();
 	    }
 	    catch (Exception e) {
