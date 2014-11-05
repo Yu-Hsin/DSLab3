@@ -27,4 +27,14 @@ public class Output {
 	    e.printStackTrace();
 	}
     }
+    
+    public void close () {
+	for (int i = 0; i < numReducer; i++) {
+	    try {
+		bw[i].close();
+	    } catch (IOException e) {
+		e.printStackTrace();
+	    }
+	}
+    }
 }

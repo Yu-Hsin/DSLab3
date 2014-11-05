@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,6 +19,7 @@ public class MapperClient { // rename to MapperClient
     private ServerSocket socketclient;
     private static int port2client = 2000;
     private String mapperClass = "", mapperFunction = ""; //mapperClass = run
+    private String localFnName = "";
 
     /**
      * open a socket for connection to the master
@@ -49,6 +51,7 @@ public class MapperClient { // rename to MapperClient
 	    String fnName = String.format("%04d", Integer.parseInt(str));
 	    BufferedWriter bw = new BufferedWriter(new FileWriter("Part-"
 		    + fnName));
+	    localFnName = "Part" + fnName;
 
 	    while ((str = br.readLine()) != null) {
 		// System.out.println(str);
@@ -87,16 +90,39 @@ public class MapperClient { // rename to MapperClient
 
     public void execute() {
 
+	/*
+	 * Class<?>[] paramsClass = new Class<?>[params.length];
+				for (int i = 0; i < params.length; i++) {
+					paramsClass[i] = params[i].getClass();
+				}
+				
+				method = remoteObj.getClass().getMethod(methodName, paramsClass);
+			}
+	 */
+	
+	
 	Process pro;
 	try {
 	    pro = Runtime.getRuntime().exec("javac " + mapperClass + ".java" ); //compile
 	    pro.waitFor();
 	    Class<?> myClass = Class.forName(mapperClass);
+	    Class<?>[] paramsClass = new Class<?>[2];
+	    paramsClass[0] = String.class;
+	    paramsClass[1] = Output.class;
 	    Constructor<?> myCons = myClass.getConstructor();
 	    Object object = myCons.newInstance();
 	    Method method = null;
-	    method = object.getClass().getMethod(mapperFunction);
-	    method.invoke(object);
+	    Output output = new Output(5, "test");
+	    method = object.getClass().getMethod(mapperFunction, paramsClass);
+	    
+	    BufferedReader br = new BufferedReader(new FileReader(localFnName));
+	    String str = "";
+	    while ((str = br.readLine()) != null) {
+		method.invoke(object, str, output);
+	    }
+	    br.close();
+	    output.close();
+	    
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
