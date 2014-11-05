@@ -24,7 +24,6 @@ public class MapperClient { // rename to MapperClient
 								       // = run
     private int numReducer = 5;
     private String localFnName = "";
-    private String masterIP = "";
     private Socket toMasterSocket;
 
     /**
@@ -58,7 +57,6 @@ public class MapperClient { // rename to MapperClient
 	    BufferedWriter bw = new BufferedWriter(new FileWriter("Part-"
 		    + fnName));
 	    localFnName = "Part-" + fnName;
-
 	    while ((str = br.readLine()) != null) {
 		// System.out.println(str);
 		bw.write(str);
@@ -117,14 +115,12 @@ public class MapperClient { // rename to MapperClient
 	    }
 	    br.close();
 	    output.close();
-	    ackMaster();
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
     }
 
     public void ackMaster() {
-
 	try {
 	    
 	    DataOutputStream dout = new DataOutputStream(
@@ -139,7 +135,8 @@ public class MapperClient { // rename to MapperClient
     }
 
     public void distribute() {
-	//ackMaster();
+	//SEND FILE
+	ackMaster();
     }
 
     public static void main(String[] args) {
