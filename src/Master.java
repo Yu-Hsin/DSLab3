@@ -3,12 +3,12 @@ import java.net.*;
 
 public class Master {
 
-    private static final int SlaveNode = 1;
+    private static final int SlaveNode = 2;
 
-    private static String[] ips = {"ghc53.ghc.andrew.cmu.edu"};
+    //private static String[] ips = {"ghc53.ghc.andrew.cmu.edu"};
 
-    //private static String[] ips = { "ghc53.ghc.andrew.cmu.edu",
-    //	    "ghc52.ghc.andrew.cmu.edu" };
+    private static String[] ips = { "ghc53.ghc.andrew.cmu.edu",
+    	    "ghc54.ghc.andrew.cmu.edu" };
 
     public static void main(String[] args) {
 
@@ -32,6 +32,7 @@ public class Master {
 	}
     }
 
+    /*
     public static class SendInitialInfoThread implements Runnable {
 	private Socket mSocket = null;
 	private String[] slaves;
@@ -49,6 +50,7 @@ public class Master {
 	    
 	}
     }
+    */
     
     public static class SendFileThread implements Runnable {
 	private Socket mSocket = null;
@@ -83,7 +85,7 @@ public class Master {
 		br = new BufferedReader(new FileReader(filename));
 
 		for (int slaveIdx = 0; slaveIdx < SlaveNode; slaveIdx++) {
-		    System.out.println(slaves[slaveIdx]);
+		    //System.out.println(slaves[slaveIdx]);
 		    mSocket = new Socket(slaves[slaveIdx], port);
 
 		    ObjectOutputStream out = new ObjectOutputStream(
@@ -95,7 +97,7 @@ public class Master {
 		    out.flush();
 
 		    while (idx < lenInOnePart && (s = br.readLine()) != null) {
-			System.out.println(s + " " + idx);
+			//System.out.println(s + " " + idx);
 			byte[] buf = (s + "\n").getBytes();
 
 			if (s.length() <= 1024) {
@@ -141,7 +143,7 @@ public class Master {
 	public void run() {
 	    try {
 		for (int slaveIdx = 0; slaveIdx < SlaveNode; slaveIdx++) {
-		    System.out.println(slaves[slaveIdx]);
+		    //System.out.println(slaves[slaveIdx]);
 		    mSocket = new Socket(slaves[slaveIdx], port);
 		    OutputStream out = mSocket.getOutputStream();
 		    DataOutputStream dout = new DataOutputStream(out);
