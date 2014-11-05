@@ -116,6 +116,7 @@ public class MapperClient { // rename to MapperClient
 	    e.printStackTrace();
 	}
     }
+    
 
     public void distribute() {
 	//
