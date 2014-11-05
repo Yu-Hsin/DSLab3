@@ -7,8 +7,8 @@ public class Master {
 
     //private static String[] ips = {"ghc53.ghc.andrew.cmu.edu"};
 
-    private static String[] mapperIPs = { "ghc53.ghc.andrew.cmu.edu",
-    "ghc54.ghc.andrew.cmu.edu" };
+    private static String[] mapperIPs = { "ghc54.ghc.andrew.cmu.edu",
+    "ghc53.ghc.andrew.cmu.edu" };
 
     private static String[] reducerIPs = {};
     
@@ -30,12 +30,14 @@ public class Master {
 		sendJavaThreads[i].start();
 	    }
 
-	    for (Thread thr : sendJavaThreads) thr.join();
-
+	    for (int i = 0; i < sendJavaThreads.length; i++) sendJavaThreads[i].join();
+	    System.out.println("all threads finish");
+	    
+	    /*
 	    SendReduceStartThread sendToReducer = new SendReduceStartThread(reducerIPs, reducerPort);
 	    t = new Thread(sendToReducer);
 	    t.start();
-
+		*/
 	} catch (InterruptedException e) {
 	    e.printStackTrace();
 	}
@@ -123,7 +125,7 @@ public class Master {
 		/* Send line */
 		br = new BufferedReader(new FileReader(filename));
 
-		for (int slaveIdx = 0; slaveIdx < SlaveNode; slaveIdx++) {
+		for (int slaveIdx = 0; slaveIdx < slaves.length; slaveIdx++) {
 		    //System.out.println(slaves[slaveIdx]);
 		    mSocket = new Socket(slaves[slaveIdx], port);
 
@@ -154,8 +156,10 @@ public class Master {
 
 			idx++;
 		    }
+		    
+		    mSocket.close();
 		}
-		mSocket.close();
+		
 		br.close();
 	    } catch (Exception e) {
 		e.printStackTrace();
@@ -181,10 +185,11 @@ public class Master {
 	@Override
 	public void run() {
 	    try {
-		//System.out.println(slaves[slaveIdx]);
+		System.out.println(slave);
 		mSocket = new Socket(slave, port);
-		OutputStream out = mSocket.getOutputStream();
-		DataOutputStream dout = new DataOutputStream(out);
+		DataOutputStream dout = new DataOutputStream(mSocket.getOutputStream());
+		DataInputStream din = new DataInputStream(mSocket.getInputStream());
+		
 
 		File jarFile = new File(filename);
 		BufferedInputStream bis = new BufferedInputStream(new FileInputStream(jarFile));
@@ -197,14 +202,12 @@ public class Master {
 		    dout.write(buffer, 0, count);
 		    dout.flush();
 		}
+		mSocket.shutdownOutput();
 		System.out.println("Done.");
 		
 		/* Wait for finish signal */
-		DataInputStream din = new DataInputStream(mSocket.getInputStream());
-		while(true) {
-		    String rtnMsg = din.readUTF();
-		    if (rtnMsg.equals("OK")) break;
-		}
+		String rtnMsg = din.readUTF();
+		System.out.println("return msg: " + rtnMsg + " " + rtnMsg.equals("OK"));
 		
 		bis.close();
 		mSocket.close();
