@@ -1,4 +1,6 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
@@ -15,11 +17,11 @@ import java.util.List;
 public class ReducerClient {
     
 
-    private ServerSocket socketclient;
-    private static int port2client = 2000;
+    private ServerSocket reducerToMapper, reducerToMaster;
+    private static int port2mapper = 2000, port2master = 2002;
     private String reducerClass = "TestReducer", reducerFunction = "reduce"; //mapperClass = run
     private Map <String, List <String>> map;
-    
+
 
     
     public ReducerClient(){
@@ -31,13 +33,24 @@ public class ReducerClient {
      */
     public void openSocket() {
 	try {
-	    socketclient = new ServerSocket(port2client);
-	    ConnectionService cs = new ConnectionService(socketclient);
+	    reducerToMapper = new ServerSocket(port2mapper);
+	    reducerToMaster = new ServerSocket(port2master);
+	    
+	    ConnectionService cs = new ConnectionService(reducerToMapper);
 	    new Thread(cs).start();
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
     }
+    
+    public void ackMaster() {	
+	    try {
+		reducerToMaster.accept();
+	    } catch (IOException e) {
+		e.printStackTrace();
+	    }
+    }
+	        
     
     
     //connection to the mapper
@@ -126,7 +139,8 @@ public class ReducerClient {
     public static void main (String [] args) {
 	ReducerClient client = new ReducerClient();
 	client.openSocket();//create a socket for listenting to the mapper node
-	client.execute();//exec
+	client.ackMaster(); //wait for the message from master
+	client.execute(); //exec
     }
     
 }
