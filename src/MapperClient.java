@@ -18,7 +18,7 @@ public class MapperClient { // rename to MapperClient
     private ObjectInputStream inputStream;
     private ServerSocket socketclient;
     private static int port2client = 2000;
-    private String mapperClass = "", mapperFunction = ""; //mapperClass = run
+    private String mapperClass = "TestMapper", mapperFunction = "map"; //mapperClass = run
     private String localFnName = "";
 
     /**
@@ -51,7 +51,7 @@ public class MapperClient { // rename to MapperClient
 	    String fnName = String.format("%04d", Integer.parseInt(str));
 	    BufferedWriter bw = new BufferedWriter(new FileWriter("Part-"
 		    + fnName));
-	    localFnName = "Part" + fnName;
+	    localFnName = "Part-" + fnName;
 
 	    while ((str = br.readLine()) != null) {
 		// System.out.println(str);
@@ -89,17 +89,6 @@ public class MapperClient { // rename to MapperClient
     }
 
     public void execute() {
-
-	/*
-	 * Class<?>[] paramsClass = new Class<?>[params.length];
-				for (int i = 0; i < params.length; i++) {
-					paramsClass[i] = params[i].getClass();
-				}
-				
-				method = remoteObj.getClass().getMethod(methodName, paramsClass);
-			}
-	 */
-	
 	
 	Process pro;
 	try {

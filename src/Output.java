@@ -5,12 +5,12 @@ import java.io.IOException;
 
 public class Output {
     private BufferedWriter [] bw;
-    private int numReducer;
+    private int numMachine;
     
-    public Output (int numReducer, String name) {
-	this.numReducer = numReducer;
-	bw = new BufferedWriter[numReducer];
-	for (int i = 0; i < numReducer; i++) {
+    public Output (int num, String name) {
+	numMachine = num;
+	bw = new BufferedWriter[num];
+	for (int i = 0; i < num; i++) {
 	    try {
 		bw[i] = new BufferedWriter(new FileWriter(name + i)); //name0, name1, name2, name3...
 	    } catch (IOException e) {
@@ -20,7 +20,7 @@ public class Output {
     }
     
     public void write (String key, String value) {
-	int index = key.hashCode() % numReducer;
+	int index = numMachine > 1? Math.abs(key.hashCode()) % numMachine : 0;
 	try {
 	    bw[index].write(key + "\t" + value + "\n");
 	} catch (IOException e) {
@@ -29,7 +29,7 @@ public class Output {
     }
     
     public void close () {
-	for (int i = 0; i < numReducer; i++) {
+	for (int i = 0; i < numMachine; i++) {
 	    try {
 		bw[i].close();
 	    } catch (IOException e) {
