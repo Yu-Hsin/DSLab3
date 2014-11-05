@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -12,14 +13,19 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class MapperClient { // rename to MapperClient
 
     private ObjectInputStream inputStream;
     private ServerSocket socketclient;
     private static int port2client = 2000;
-    private String mapperClass = "TestMapper", mapperFunction = "map"; //mapperClass = run
+    private String mapperClass = "TestMapper", mapperFunction = "map"; // mapperClass
+								       // = run
+    private int numReducer = 5;
     private String localFnName = "";
+    private String masterIP = "";
+    private Socket toMasterSocket;
 
     /**
      * open a socket for connection to the master
@@ -69,8 +75,8 @@ public class MapperClient { // rename to MapperClient
      */
     public void downloadExec() {
 	try {
-	    Socket socket = socketclient.accept();
-	    InputStream in = socket.getInputStream();
+	    toMasterSocket = socketclient.accept();
+	    InputStream in = toMasterSocket.getInputStream();
 	    DataInputStream dis = new DataInputStream(in);
 	    String fileName = dis.readUTF();
 	    FileOutputStream os = new FileOutputStream(fileName);
@@ -89,10 +95,10 @@ public class MapperClient { // rename to MapperClient
     }
 
     public void execute() {
-	
+
 	Process pro;
 	try {
-	    pro = Runtime.getRuntime().exec("javac " + mapperClass + ".java" ); //compile
+	    pro = Runtime.getRuntime().exec("javac " + mapperClass + ".java"); // compile
 	    pro.waitFor();
 	    Class<?> myClass = Class.forName(mapperClass);
 	    Class<?>[] paramsClass = new Class<?>[2];
@@ -101,9 +107,9 @@ public class MapperClient { // rename to MapperClient
 	    Constructor<?> myCons = myClass.getConstructor();
 	    Object object = myCons.newInstance();
 	    Method method = null;
-	    Output output = new Output(5, "test");
+	    Output output = new Output(numReducer, "MAPPER");
 	    method = object.getClass().getMethod(mapperFunction, paramsClass);
-	    
+
 	    BufferedReader br = new BufferedReader(new FileReader(localFnName));
 	    String str = "";
 	    while ((str = br.readLine()) != null) {
@@ -111,29 +117,44 @@ public class MapperClient { // rename to MapperClient
 	    }
 	    br.close();
 	    output.close();
-	    
+	    ackMaster();
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
     }
-    
+
+    public void ackMaster() {
+
+	try {
+	    
+	    DataOutputStream dout = new DataOutputStream(
+		    toMasterSocket.getOutputStream());
+	    dout.writeUTF("OK");
+	    dout.flush();
+	    dout.close();
+	    toMasterSocket.close();
+	} catch (Exception e) {
+	    e.printStackTrace();
+	}
+    }
 
     public void distribute() {
-	//
+	//ackMaster();
     }
 
     public static void main(String[] args) {
 	MapperClient client = new MapperClient();
-	//TODO client.loadConfig(args[0]); // load configuration file 
-	client.openSocket(); // create a socket for listenting to the master node
+	// TODO client.loadConfig(args[0]); // load configuration file
+	client.openSocket(); // create a socket for listenting to the master
+			     // node
 	// communication (get reducer ip, master ip)
 
 	client.downloadFile(); // download the split file from the master node
 	client.downloadExec(); // download the jar file from the master node
 	client.execute(); // execute the jar file, generate intermediate file
-	// client.distribute() //send same keys to same reducers, tell the
+	client.distribute(); // send same keys to same reducers
 	// master
-	
+
     }
 
 }
