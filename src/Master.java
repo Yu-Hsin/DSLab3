@@ -7,26 +7,35 @@ public class Master {
 
     //private static String[] ips = {"ghc53.ghc.andrew.cmu.edu"};
 
-    private static String[] ips = { "ghc53.ghc.andrew.cmu.edu",
-    	    "ghc54.ghc.andrew.cmu.edu" };
+    private static String[] mapperIPs = { "ghc53.ghc.andrew.cmu.edu",
+    "ghc54.ghc.andrew.cmu.edu" };
 
+    private static String[] reducerIPs = {};
+    
     public static void main(String[] args) {
 
 	try {
 	    int mapperPort = Integer.parseInt(args[0]);
-	    
-	    SendFileThread mSocketRunnable = new SendFileThread(ips, mapperPort, args[1]);
+	    int reducerPort = Integer.parseInt(args[1]);
+
+	    SendFileThread mSocketRunnable = new SendFileThread(mapperIPs, mapperPort, args[2]);
 	    Thread t = new Thread(mSocketRunnable);
 	    t.start();
 	    t.join();
-	    SendJarThread mJarSocketRunnable = new SendJarThread(ips, mapperPort, args[2]);
-	    t = new Thread(mJarSocketRunnable);
+
+	    Thread[] sendJavaThreads = new Thread[mapperIPs.length];
+	    for (int i = 0; i < mapperIPs.length; i++) {
+		SendJarThread mJarSocketRunnable = new SendJarThread(mapperIPs[i], mapperPort, args[3]);
+		sendJavaThreads[i] = new Thread(mJarSocketRunnable);
+		sendJavaThreads[i].start();
+	    }
+
+	    for (Thread thr : sendJavaThreads) thr.join();
+
+	    SendReduceStartThread sendToReducer = new SendReduceStartThread(reducerIPs, reducerPort);
+	    t = new Thread(sendToReducer);
 	    t.start();
-	    t.join();
-	    
-	    
-	    
-	    
+
 	} catch (InterruptedException e) {
 	    e.printStackTrace();
 	}
@@ -44,13 +53,43 @@ public class Master {
 	    port = p;
 	    reducerNum = n;
 	}
+
+	@Override
+	public void run() {
+
+	}
+    }
+     */
+
+    public static class SendReduceStartThread implements Runnable {
+	private Socket mSocket = null;
+	private String[] reducers;
+	private int port;
+
+	public SendReduceStartThread(String[] s, int p) {
+	    reducers = s;
+	    port = p;
+	}
 	
 	@Override
 	public void run() {
-	    
+	    try {
+		for (int i = 0; i < reducers.length; i++) {
+		    mSocket = new Socket(reducers[i], port);
+		    DataOutputStream dout = new DataOutputStream(mSocket.getOutputStream());
+		    
+		    dout.writeUTF("OK");
+		    dout.flush();
+		    dout.close();
+		}
+		
+		mSocket.close();
+	    } catch (Exception e) {
+		e.printStackTrace();
+	    }
 	}
+	
     }
-    */
     
     public static class SendFileThread implements Runnable {
 	private Socket mSocket = null;
@@ -130,11 +169,11 @@ public class Master {
     public static class SendJarThread implements Runnable{
 	private Socket mSocket = null;
 	private String filename;
-	private String[] slaves;
+	private String slave;
 	private int port;
 
-	public SendJarThread(String[] s, int p, String fname) {
-	    slaves = s;
+	public SendJarThread(String s, int p, String fname) {
+	    slave = s;
 	    port = p;
 	    filename = fname;
 	}
@@ -142,29 +181,32 @@ public class Master {
 	@Override
 	public void run() {
 	    try {
-		for (int slaveIdx = 0; slaveIdx < SlaveNode; slaveIdx++) {
-		    //System.out.println(slaves[slaveIdx]);
-		    mSocket = new Socket(slaves[slaveIdx], port);
-		    OutputStream out = mSocket.getOutputStream();
-		    DataOutputStream dout = new DataOutputStream(out);
+		//System.out.println(slaves[slaveIdx]);
+		mSocket = new Socket(slave, port);
+		OutputStream out = mSocket.getOutputStream();
+		DataOutputStream dout = new DataOutputStream(out);
 
-		    File jarFile = new File(filename);
-		    BufferedInputStream bis = new BufferedInputStream(new FileInputStream(jarFile));
+		File jarFile = new File(filename);
+		BufferedInputStream bis = new BufferedInputStream(new FileInputStream(jarFile));
 
-		    dout.writeUTF(filename);
+		dout.writeUTF(filename);
 
-
-		    byte[] buffer = new byte[1024];
-		    int count = 0;
-		    while((count = bis.read(buffer)) > 0) {
-			dout.write(buffer, 0, count);
-			dout.flush();
-		    }
-		    System.out.println("Done.");
-
-		    bis.close();
-		} 
-
+		byte[] buffer = new byte[1024];
+		int count = 0;
+		while((count = bis.read(buffer)) > 0) {
+		    dout.write(buffer, 0, count);
+		    dout.flush();
+		}
+		System.out.println("Done.");
+		
+		/* Wait for finish signal */
+		DataInputStream din = new DataInputStream(mSocket.getInputStream());
+		while(true) {
+		    String rtnMsg = din.readUTF();
+		    if (rtnMsg.equals("OK")) break;
+		}
+		
+		bis.close();
 		mSocket.close();
 	    }
 	    catch (Exception e) {
