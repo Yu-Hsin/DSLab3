@@ -89,7 +89,7 @@ public class MapperClient { // rename to MapperClient
 
 	Process pro;
 	try {
-	    pro = Runtime.getRuntime().exec("javac " + mapperClass + ".java" );
+	    pro = Runtime.getRuntime().exec("javac " + mapperClass + ".java" ); //compile
 	    pro.waitFor();
 	    Class<?> myClass = Class.forName(mapperClass);
 	    Constructor<?> myCons = myClass.getConstructor();
@@ -100,8 +100,6 @@ public class MapperClient { // rename to MapperClient
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
-
-	// ip.1, ip.2, ip.3
     }
 
     public void distribute() {
@@ -110,9 +108,8 @@ public class MapperClient { // rename to MapperClient
 
     public static void main(String[] args) {
 	MapperClient client = new MapperClient();
-	client.loadConfig(args[0]);
-	client.openSocket(); // create a socket for listenting to the master
-			     // node
+	//TODO client.loadConfig(args[0]); // load configuration file 
+	client.openSocket(); // create a socket for listenting to the master node
 	// communication (get reducer ip, master ip)
 
 	client.downloadFile(); // download the split file from the master node
@@ -120,7 +117,7 @@ public class MapperClient { // rename to MapperClient
 	client.execute(); // execute the jar file, generate intermediate file
 	// client.distribute() //send same keys to same reducers, tell the
 	// master
-
+	
     }
 
 }

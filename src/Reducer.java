@@ -1,4 +1,4 @@
 
-public class Reducer {
-
+public interface Reducer {
+    public void reduce();
 }
