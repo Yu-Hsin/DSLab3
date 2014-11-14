@@ -33,11 +33,11 @@ public class Master {
 	    for (int i = 0; i < sendJavaThreads.length; i++) sendJavaThreads[i].join();
 	    System.out.println("all threads finish");
 	    
-	    /*
+	    
 	    SendReduceStartThread sendToReducer = new SendReduceStartThread(reducerIPs, reducerPort);
 	    t = new Thread(sendToReducer);
 	    t.start();
-		*/
+		
 	} catch (InterruptedException e) {
 	    e.printStackTrace();
 	}
