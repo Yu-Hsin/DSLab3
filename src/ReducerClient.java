@@ -1,4 +1,6 @@
 import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
@@ -11,8 +13,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 
-
 public class ReducerClient {
+    
+    /*
+     * 2014/11/18 haopingh
+     */
+    private static final int statusPort = 7070;
+    private ServerSocket socketStatus;
+    private boolean isIdle = true;
     
 
     private ServerSocket reducerToMapper, reducerToMaster;
@@ -133,8 +141,52 @@ public class ReducerClient {
 	
     }
     
+    /**
+     *  2014/11/18 haopingh
+     */
+    public void statusReportThread() {
+	try {
+	    socketStatus = new ServerSocket(statusPort);
+	    Thread t = new Thread(new StatusReportThread(socketStatus));
+	    t.start();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
+    }
+
+    private class StatusReportThread implements Runnable {
+	ServerSocket mServer = null;
+	
+	public StatusReportThread(ServerSocket s) {
+	    mServer = s;
+	}
+
+	@Override
+	public void run() {
+	    while(true) {
+		try {
+		    Socket request = mServer.accept();
+		    
+		    DataInputStream dis = new DataInputStream(request.getInputStream());
+		    DataOutputStream dos = new DataOutputStream(request.getOutputStream());
+		    String s = dis.readUTF();
+		    
+		    if (s.equals("status")) dos.writeUTF(isIdle ? "idle" : "busy");
+		    dos.flush();
+		    request.close();
+		} catch (IOException e) {
+		    e.printStackTrace();
+		}
+	    }
+	}
+    }
+    
     public static void main (String [] args) {
 	ReducerClient client = new ReducerClient();
+	
+	/* Start another server to respond the status request */
+	client.statusReportThread();
+	
 	client.openSocket();//create a socket for listenting to the mapper node
 	client.ackMaster(); //wait for the message from master
 	client.execute(); //exec
