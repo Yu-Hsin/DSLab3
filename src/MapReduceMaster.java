@@ -7,6 +7,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -39,7 +41,7 @@ public class MapReduceMaster {
 	 */
 	System.out.println("Initialization...");
 	try {
-	    BufferedReader configbr = new BufferedReader(new FileReader("configfile"));
+	    BufferedReader configbr = new BufferedReader(new FileReader(configfile));
 	    availableMapper = new HashMap<String, Boolean>();
 	    availableReducer = new HashMap<String, Boolean>();
 	    loadingMapper = new HashMap<String, Integer>();
@@ -80,13 +82,14 @@ public class MapReduceMaster {
 
 	System.out.println("Current System:  " + mapperNum + " Mappers, " + reducerNum + " Reducers.");
 
+	
 	/*
 	 *  2. Check which nodes are active, which are dead.
 	 */
 	System.out.println("Check the status of each working nodes...");
 
 	Socket connectSocket;
-	int activeMapper = 0, activeReducer = 0;;
+	int activeMapper = 0, activeReducer = 0;
 	for (Map.Entry<String, Boolean> e : availableMapper.entrySet()) {
 	    try {
 		connectSocket = new Socket(e.getKey(), mapperStatusPort);
@@ -138,22 +141,79 @@ public class MapReduceMaster {
 	    ServerSocket mServer = new ServerSocket(masterPort);
 
 	    while(true) {
-		Socket request = mServer.accept();
+		System.out.println("Wait for Map Reduce requests...");
+		Socket mapreduceRequest = mServer.accept();
 
-		/* Read the required file: configuration file */
-
-
-		/* Process the map reduce request */
-
-
+		/* Here the master starts to handle different requests. */
+		ObjectInputStream ois = new ObjectInputStream(mapreduceRequest.getInputStream());
+		Object obj = ois.readObject();
+		
+		if (obj instanceof MapReduceTask) {
+		    /* Read the task request */
+		    System.out.println("Receive a MapReduce task, request " + 
+			    		((MapReduceTask)obj).getMapperNum() + " mappers.");
+		    assignResource((MapReduceTask)obj);
+		    
+		    /* Process the map reduce request */
+		    ObjectOutputStream oos = new ObjectOutputStream(mapreduceRequest.getOutputStream());
+		    oos.writeObject(obj);
+		    oos.flush();
+		}
+		
+		/* Wait for the task to be completed and release resources */
+		//ois = new ObjectInputStream(mapreduceRequest.getInputStream());
+		//obj = ois.readObject();
+		
+		mapreduceRequest.close();
 	    }
 
 	} catch (IOException e) {
 	    e.printStackTrace();
+	} catch (ClassNotFoundException e1) {
+	    e1.printStackTrace();
 	}
 
 
+	/*
+	 *  4. Use another thread to read standard input commands.
+	 */
     }
 
-
+    /**
+     * This function first reads how many mapper or reducer are required in the task object,
+     * then assign mappers, reducers to this task by setting its data members.
+     * @param mTask
+     */
+    private static void assignResource(MapReduceTask mTask) {
+	
+	int requestMapper = mTask.getMapperNum();
+	int requestReducer = mTask.getReducerNum();
+	String[] resultMapper = new String[requestMapper];
+	String[] resultReducer = new String[requestReducer];
+	int mapIdx = 0, redIdx = 0;
+	
+	for (Map.Entry<String, Boolean> e : availableMapper.entrySet()) {
+	    if (e.getValue()) {
+		resultMapper[mapIdx++] = e.getKey();
+		loadingMapper.put(e.getKey(), loadingMapper.get(e.getKey())+1);
+		
+		if (mapIdx == requestMapper) break;
+	    }
+	}
+	
+	for (Map.Entry<String, Boolean> e : availableReducer.entrySet()) {
+	    if (e.getValue()) {
+		resultReducer[redIdx++] = e.getKey();
+		loadingReducer.put(e.getKey(), loadingReducer.get(e.getKey())+1);
+		
+		if (redIdx == requestReducer) break;
+	    }
+	}
+	
+	/* Setting required informations */
+	mTask.setMapperIP(resultMapper);
+	mTask.setMapperPort(mapperPort);
+	mTask.setReducerIP(resultReducer);
+	mTask.setReducerPort(reducerPort);
+    }
 }

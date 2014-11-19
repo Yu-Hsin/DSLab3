@@ -24,7 +24,7 @@ public class ReducerClient {
     
 
     private ServerSocket reducerToMapper, reducerToMaster;
-    private static int port2mapper = 2000, port2master = 2002;
+    private static int port2mapper = 7000, port2master = 2002;
     private String reducerClass = "TestReducer", reducerFunction = "reduce"; //mapperClass = run
     private Map <String, List <String>> map;
 
@@ -184,10 +184,13 @@ public class ReducerClient {
     public static void main (String [] args) {
 	ReducerClient client = new ReducerClient();
 	
+	
+	
+	client.openSocket();//create a socket for listenting to the mapper node
+	
 	/* Start another server to respond the status request */
 	client.statusReportThread();
 	
-	client.openSocket();//create a socket for listenting to the mapper node
 	client.ackMaster(); //wait for the message from master
 	client.execute(); //exec
     }

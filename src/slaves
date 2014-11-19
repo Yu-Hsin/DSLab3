@@ -1,16 +1,12 @@
-Mapper 5
+Mapper 3
 port 8000
 statusport 8080
-ghc54.ghc.andrew.cmu.edu
-ghc55.ghc.andrew.cmu.edu
-ghc56.ghc.andrew.cmu.edu
-ghc57.ghc.andrew.cmu.edu
-ghc58.ghc.andrew.cmu.edu
-Reducer 5
+ghc33.ghc.andrew.cmu.edu
+ghc35.ghc.andrew.cmu.edu
+ghc37.ghc.andrew.cmu.edu
+Reducer 3
 port 7000
 statusport 7070
-ghc59.ghc.andrew.cmu.edu
-ghc60.ghc.andrew.cmu.edu
-ghc61.ghc.andrew.cmu.edu
-ghc62.ghc.andrew.cmu.edu
-ghc63.ghc.andrew.cmu.edu
+ghc38.ghc.andrew.cmu.edu
+ghc39.ghc.andrew.cmu.edu
+ghc40.ghc.andrew.cmu.edu

@@ -27,7 +27,7 @@ public class MapperClient { // rename to MapperClient
 
     private ObjectInputStream inputStream;
     private ServerSocket socketclient;
-    private static int port2client = 2000;
+    private static int port2client = 8000;
     private String mapperClass = "TestMapper", mapperFunction = "map"; // mapperClass
     // = run
     private int numReducer = 5;
@@ -191,11 +191,13 @@ public class MapperClient { // rename to MapperClient
     public static void main(String[] args) {
 	MapperClient client = new MapperClient();
 
-	/* Start another server to respond the status request */
-	client.statusReportThread();
 
 	// TODO client.loadConfig(args[0]); // load configuration file
 	client.openSocket(); // create a socket for listenting to the master
+	
+	/* Start another server to respond the status request */
+	client.statusReportThread();
+	
 	// node
 	// communication (get reducer ip, master ip)
 
