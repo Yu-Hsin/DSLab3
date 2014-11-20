@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
@@ -23,8 +24,13 @@ public class MapperClient { // rename to MapperClient
     private String mapperClass = "TestMapper", mapperFunction = "map"; // mapperClass
 								       // = run
     private int numReducer = 5;
+    
+    private String [] reducerIP;
+    private static int port2reducer = 2000;
+    
     private String localFnName = "";
     private Socket toMasterSocket;
+    
 
     /**
      * open a socket for connection to the master
@@ -38,7 +44,7 @@ public class MapperClient { // rename to MapperClient
     }
 
     public void loadConfig(String fnName) {
-
+	
     }
 
     /**
@@ -58,7 +64,6 @@ public class MapperClient { // rename to MapperClient
 		    + fnName));
 	    localFnName = "Part-" + fnName;
 	    while ((str = br.readLine()) != null) {
-		// System.out.println(str);
 		bw.write(str);
 		bw.write("\n");
 	    }
@@ -134,10 +139,43 @@ public class MapperClient { // rename to MapperClient
 	}
     }
 
-    public void distribute() {
+    public void distribute() { //TODO
 	//SEND FILE
+	for (int i = 0; i < numReducer; i++) {
+	    try {
+		Socket socket = new Socket(reducerIP[i], port2reducer);
+		
+		OutputStreamWriter dOut = new OutputStreamWriter(
+			    socket.getOutputStream());
+		    dOut.write("A" + "\n");
+		    dOut.write(String.valueOf(port2client) + "\n");
+		    dOut.flush();
+		    dOut.close();
+		
+	    } catch (UnknownHostException e) {
+		e.printStackTrace();
+	    } catch (IOException e) {
+		e.printStackTrace();
+	    } 
+	}
 	ackMaster();
     }
+    
+    public class Sender implements Runnable{
+	Socket socket;
+	int fileIdx;
+	public Sender (Socket socket, int idx) {
+	    this.socket = socket;
+	    fileIdx = idx;
+	}
+	@Override
+	public void run() {
+	    
+	    
+	}
+	
+    }
+    
 
     public static void main(String[] args) {
 	MapperClient client = new MapperClient();
@@ -151,7 +189,6 @@ public class MapperClient { // rename to MapperClient
 	client.execute(); // execute the jar file, generate intermediate file
 	client.distribute(); // send same keys to same reducers
 	// master
-
     }
 
 }
