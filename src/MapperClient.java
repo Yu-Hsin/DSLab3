@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -18,11 +19,18 @@ import java.net.UnknownHostException;
 
 public class MapperClient { // rename to MapperClient
 
+    /*
+     * 2014/11/18 haopingh
+     */
+    private static final int statusPort = 8080;
+    private ServerSocket socketStatus;
+    private boolean isIdle = true;
+
     private ObjectInputStream inputStream;
     private ServerSocket socketclient;
-    private static int port2client = 2000;
+    private static int port2client = 8000;
     private String mapperClass = "TestMapper", mapperFunction = "map"; // mapperClass
-								       // = run
+    // = run
     private int numReducer = 5;
     
     private String [] reducerIP;
@@ -43,8 +51,29 @@ public class MapperClient { // rename to MapperClient
 	}
     }
 
-    public void loadConfig(String fnName) {
-	
+    public void getInitialInfo() {
+	try {
+	    Socket socket = socketclient.accept();
+	    
+	    System.out.println("Getting initial information for current task...");
+	    ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+	    
+	    Object obj = ois.readObject();
+	    if (obj instanceof MapReduceTask) {
+		MapReduceTask mTask = (MapReduceTask)obj;
+		numReducer = mTask.getReducerNum();
+		mapperClass = mTask.getMapperClass();
+		mapperFunction = mTask.getMapperFunc();
+	    }
+	    
+	    ois.close();
+	    socket.close();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
+	}
+
     }
 
     /**
@@ -127,7 +156,7 @@ public class MapperClient { // rename to MapperClient
 
     public void ackMaster() {
 	try {
-	    
+
 	    DataOutputStream dout = new DataOutputStream(
 		    toMasterSocket.getOutputStream());
 	    dout.writeUTF("OK");
@@ -177,12 +206,60 @@ public class MapperClient { // rename to MapperClient
     }
     
 
+    /**
+     *  2014/11/18 haopingh
+     */
+    public void statusReportThread() {
+	try {
+	    socketStatus = new ServerSocket(statusPort);
+	    Thread t = new Thread(new StatusReportThread(socketStatus));
+	    t.start();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
+    }
+
+    private class StatusReportThread implements Runnable {
+	ServerSocket mServer = null;
+	
+	public StatusReportThread(ServerSocket s) {
+	    mServer = s;
+	}
+
+	@Override
+	public void run() {
+	    while(true) {
+		try {
+		    Socket request = mServer.accept();
+		    
+		    DataInputStream dis = new DataInputStream(request.getInputStream());
+		    DataOutputStream dos = new DataOutputStream(request.getOutputStream());
+		    String s = dis.readUTF();
+		    
+		    if (s.equals("status")) dos.writeUTF(isIdle ? "idle" : "busy");
+		    dos.flush();
+		    request.close();
+		} catch (IOException e) {
+		    e.printStackTrace();
+		}
+	    }
+	    
+	}
+    }
+    
     public static void main(String[] args) {
 	MapperClient client = new MapperClient();
+
+
 	// TODO client.loadConfig(args[0]); // load configuration file
 	client.openSocket(); // create a socket for listenting to the master
-			     // node
+	
+	/* Start another server to respond the status request */
+	client.statusReportThread();
+	
+	// node
 	// communication (get reducer ip, master ip)
+	client.getInitialInfo();
 
 	client.downloadFile(); // download the split file from the master node
 	client.downloadExec(); // download the jar file from the master node
