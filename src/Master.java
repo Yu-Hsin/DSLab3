@@ -5,6 +5,7 @@ public class Master {
 
     private static String masterIP = null;
     private static int masterPort;
+    private static Socket socketTaskRequest = null;
 
     private static String[] mapperIPs = null;
     private static String[] reducerIPs = null;
@@ -21,7 +22,7 @@ public class Master {
     public static void main(String[] args) {
 	/*
 	 *  Check the standard input,
-	 *  Ex: java Master <config file> <jar file>
+	 *  Ex: java Master <config file> <jar file> <input file>
 	 */
 	if (args.length != 3) {
 	    System.out.println("Error input: java Master <config file> <jar file> <input file>");
@@ -67,16 +68,23 @@ public class Master {
 	/*
 	 *  2. Send Map Reduce Task request to the system master.
 	 */
+	// Here initializes the information of a mapreduce task.
+	MapReduceTask mTask = new MapReduceTask();
+	mTask.setMapperNum(mapperNum);
+	mTask.setReducerNum(reducerNum);
+	mTask.setMapperClass(mapperClass);
+	mTask.setMapperFunc(mapperFunc);
+	mTask.setReducerClass(reducerClass);
+	mTask.setReducerFunc(reducerFunc);
+	//
+	
 	try {
-	    MapReduceTask mTask = new MapReduceTask();
-	    mTask.setMapperNum(mapperNum);
-	    mTask.setReducerNum(reducerNum);
-	    Socket socketTaskRequest = new Socket(masterIP, masterPort);
-	    
+	    socketTaskRequest = new Socket(masterIP, masterPort);
+
 	    ObjectOutputStream oos = new ObjectOutputStream(socketTaskRequest.getOutputStream());
 	    oos.writeObject(mTask);
 	    oos.flush();
-	    
+
 	    ObjectInputStream ois = new ObjectInputStream(socketTaskRequest.getInputStream());
 	    Object obj = ois.readObject();
 	    if (obj instanceof MapReduceTask) {
@@ -85,10 +93,10 @@ public class Master {
 		mapperPort = mTask.getMapperPort();
 		reducerIPs = mTask.getReducerIP();
 		reducerPort = mTask.getReducerPort();
-		
+
 		for (String s : reducerIPs) System.out.print(s + " ");
 		System.out.println();
-		
+
 	    }
 	    else {
 		System.out.println("Wrong Task Request...");
@@ -104,15 +112,36 @@ public class Master {
 
 	
 	/*
-	 *  3. Send the file segments, and jar files to mappers. 
+	 *  3. Send the initial information to the mapper,
+	 *     which is contained in the MapReduceTask Object.
+	 */
+	try {
+	    System.out.println("Send the initial information(reducer number, IP...) to mappers...");
+	    Thread[] initialInfoThreads = new Thread[mapperNum];
+	    for (int i = 0; i < mapperNum; i++) {
+		initialInfoThreads[i] = new Thread(new InitialInfoThread(mapperIPs[i], mapperPort, mTask));
+		initialInfoThreads[i].start();
+	    }
+	    
+	    for (int i = 0; i < mapperNum; i++) initialInfoThreads[i].join();
+	    System.out.println("Initial information all set.");
+	    
+	} catch (InterruptedException e) {
+	    e.printStackTrace();
+	}
+	
+	/*
+	 *  4. Send the file segments, and jar files to mappers. 
 	 *     Then notify the reducers to start after all mappers complete.
 	 */
 	try {
+	    System.out.println("Now transmit the Input file...");
 	    SendFileThread mSocketRunnable = new SendFileThread(mapperIPs, mapperPort, inputFile);
 	    Thread t = new Thread(mSocketRunnable);
 	    t.start();
 	    t.join();
 
+	    System.out.println("Now transmit the Jar file and run Map function...");
 	    Thread[] sendJavaThreads = new Thread[mapperIPs.length];
 	    for (int i = 0; i < mapperIPs.length; i++) {
 		SendJarThread mJarSocketRunnable = new SendJarThread(mapperIPs[i], mapperPort, jarFile);
@@ -121,57 +150,100 @@ public class Master {
 	    }
 
 	    for (int i = 0; i < sendJavaThreads.length; i++) sendJavaThreads[i].join();
-	    System.out.println("all threads finish");
+	    System.out.println("all Mappers finish.");
 
+	    System.out.println("Now run Reduce function...");
+	    Thread[] sendToReducers = new Thread[reducerNum];
+	    for (int i = 0; i < reducerNum; i++) {
+		sendToReducers[i] = new Thread(new SendReduceStartThread(reducerIPs[i], reducerPort));
+		sendToReducers[i].start();
+	    }
 
-	    SendReduceStartThread sendToReducer = new SendReduceStartThread(reducerIPs, reducerPort);
-	    t = new Thread(sendToReducer);
-	    t.start();
+	    for (int i = 0; i < reducerNum; i++) sendToReducers[i].join();
+	    System.out.println("All Reducers finish.");
 
 	} catch (InterruptedException e) {
 	    e.printStackTrace();
 	}
-	
+
 	/*
-	 *  4. Tell the System Master the finish of the task,
+	 *  5. Tell the System Master the finish of the task,
 	 *     so that the System Master can release the resources.
 	 */
-	
-	
-	
+	try {
+	    ObjectOutputStream oos = new ObjectOutputStream(socketTaskRequest.getOutputStream());
+	    oos.writeObject(mTask);
+	    oos.flush();
+	    oos.close();
+	    socketTaskRequest.close();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
     }
 
     public static class SendReduceStartThread implements Runnable {
 	private Socket mSocket = null;
-	private String[] reducers;
-	private int port;
-
-	public SendReduceStartThread(String[] s, int p) {
-	    reducers = s;
-	    port = p;
+	private String reducerIP = null;
+	private int reducerPort;
+	
+	public SendReduceStartThread(String ip, int port) {
+	    reducerIP = ip;
+	    reducerPort = port;
 	}
-
+	
 	@Override
 	public void run() {
 	    try {
-		for (int i = 0; i < reducers.length; i++) {
-		    //System.out.println("reducer:  " + reducers[i] + " " + port);
-		    mSocket = new Socket(reducers[i], port);
-		    DataOutputStream dout = new DataOutputStream(mSocket.getOutputStream());
-
-		    dout.writeUTF("OK");
-		    dout.flush();
-		    dout.close();
-		}
-
-		mSocket.close();
-	    } catch (Exception e) {
+		mSocket = new Socket(reducerIP, reducerPort);
+		
+		DataOutputStream dout = new DataOutputStream(mSocket.getOutputStream());
+		dout.writeUTF("OK");
+		dout.flush();
+		mSocket.shutdownOutput();
+		
+		DataInputStream din = new DataInputStream(mSocket.getInputStream());
+		String rtnVal = din.readUTF();
+		if (rtnVal.equals("OK")) return;
+		
+	    } catch (UnknownHostException e) {
+		e.printStackTrace();
+	    } catch (IOException e) {
 		e.printStackTrace();
 	    }
 	}
-
     }
-
+    
+    public static class InitialInfoThread implements Runnable {
+	private Socket mSocket = null;
+	private String slaveIP = null;
+	private int slavePort;
+	private MapReduceTask mTask = null;
+	
+	public InitialInfoThread(String ip, int p, MapReduceTask info) {
+	    slaveIP = ip;
+	    slavePort = p;
+	    mTask = info;
+	}
+	
+	@Override
+	public void run() {
+	    try {
+		mSocket = new Socket(slaveIP, slavePort);
+		
+		ObjectOutputStream oos = new ObjectOutputStream(mSocket.getOutputStream());
+		oos.writeObject(mTask);
+		oos.flush();
+		oos.close();
+		mSocket.close();
+	    } catch (UnknownHostException e) {
+		e.printStackTrace();
+	    } catch (IOException e) {
+		e.printStackTrace();
+	    }
+	}
+	
+    }
+    
     public static class SendFileThread implements Runnable {
 	private Socket mSocket = null;
 	private String filename;
@@ -208,8 +280,8 @@ public class Master {
 		    mSocket = new Socket(slaves[slaveIdx], port);
 
 		    System.out.println("socket:  " + slaves[slaveIdx] + "  " + port);
-		    
-		    
+
+
 		    ObjectOutputStream out = new ObjectOutputStream(
 			    mSocket.getOutputStream());
 

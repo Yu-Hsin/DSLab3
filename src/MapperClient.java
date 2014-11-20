@@ -45,8 +45,28 @@ public class MapperClient { // rename to MapperClient
 	}
     }
 
-    public void loadConfig(String fnName) {
-
+    public void getInitialInfo() {
+	try {
+	    Socket socket = socketclient.accept();
+	    
+	    System.out.println("Getting initial information for current task...");
+	    ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+	    
+	    Object obj = ois.readObject();
+	    if (obj instanceof MapReduceTask) {
+		MapReduceTask mTask = (MapReduceTask)obj;
+		numReducer = mTask.getReducerNum();
+		mapperClass = mTask.getMapperClass();
+		mapperFunction = mTask.getMapperFunc();
+	    }
+	    
+	    ois.close();
+	    socket.close();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
+	}
     }
 
     /**
@@ -200,6 +220,7 @@ public class MapperClient { // rename to MapperClient
 	
 	// node
 	// communication (get reducer ip, master ip)
+	client.getInitialInfo();
 
 	client.downloadFile(); // download the split file from the master node
 	client.downloadExec(); // download the jar file from the master node
