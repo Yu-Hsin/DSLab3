@@ -32,13 +32,12 @@ public class MapperClient { // rename to MapperClient
     private String mapperClass = "TestMapper", mapperFunction = "map"; // mapperClass
     // = run
     private int numReducer = 5;
-    
-    private String [] reducerIP;
+
+    private String[] reducerIP;
     private static int port2reducer = 2000;
-    
+
     private String localFnName = "";
     private Socket toMasterSocket;
-    
 
     /**
      * open a socket for connection to the master
@@ -54,18 +53,20 @@ public class MapperClient { // rename to MapperClient
     public void getInitialInfo() {
 	try {
 	    Socket socket = socketclient.accept();
-	    
-	    System.out.println("Getting initial information for current task...");
-	    ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-	    
+
+	    System.out
+		    .println("Getting initial information for current task...");
+	    ObjectInputStream ois = new ObjectInputStream(
+		    socket.getInputStream());
+
 	    Object obj = ois.readObject();
 	    if (obj instanceof MapReduceTask) {
-		MapReduceTask mTask = (MapReduceTask)obj;
+		MapReduceTask mTask = (MapReduceTask) obj;
 		numReducer = mTask.getReducerNum();
 		mapperClass = mTask.getMapperClass();
 		mapperFunction = mTask.getMapperFunc();
 	    }
-	    
+
 	    ois.close();
 	    socket.close();
 	} catch (IOException e) {
@@ -168,46 +169,50 @@ public class MapperClient { // rename to MapperClient
 	}
     }
 
-    public void distribute() { //TODO
-	//SEND FILE
+    public void distribute() { // TODO
+	// SEND FILE
 	for (int i = 0; i < numReducer; i++) {
 	    try {
 		Socket socket = new Socket(reducerIP[i], port2reducer);
-		
+
 		OutputStreamWriter dOut = new OutputStreamWriter(
-			    socket.getOutputStream());
-		    dOut.write("A" + "\n");
-		    dOut.write(String.valueOf(port2client) + "\n");
+			socket.getOutputStream());
+		BufferedReader br = new BufferedReader(new FileReader("MAPPER"
+			+ "i"));
+		String str = "";
+		while ((str = br.readLine()) != null) {
+		    dOut.write(str);
 		    dOut.flush();
-		    dOut.close();
-		
+		}
+		br.close();
+		dOut.close();
 	    } catch (UnknownHostException e) {
 		e.printStackTrace();
 	    } catch (IOException e) {
 		e.printStackTrace();
-	    } 
+	    }
 	}
 	ackMaster();
     }
-    
-    public class Sender implements Runnable{
+
+    public class Sender implements Runnable {
 	Socket socket;
 	int fileIdx;
-	public Sender (Socket socket, int idx) {
+
+	public Sender(Socket socket, int idx) {
 	    this.socket = socket;
 	    fileIdx = idx;
 	}
+
 	@Override
 	public void run() {
-	    
-	    
+
 	}
-	
+
     }
-    
 
     /**
-     *  2014/11/18 haopingh
+     * 2014/11/18 haopingh
      */
     public void statusReportThread() {
 	try {
@@ -221,42 +226,44 @@ public class MapperClient { // rename to MapperClient
 
     private class StatusReportThread implements Runnable {
 	ServerSocket mServer = null;
-	
+
 	public StatusReportThread(ServerSocket s) {
 	    mServer = s;
 	}
 
 	@Override
 	public void run() {
-	    while(true) {
+	    while (true) {
 		try {
 		    Socket request = mServer.accept();
-		    
-		    DataInputStream dis = new DataInputStream(request.getInputStream());
-		    DataOutputStream dos = new DataOutputStream(request.getOutputStream());
+
+		    DataInputStream dis = new DataInputStream(
+			    request.getInputStream());
+		    DataOutputStream dos = new DataOutputStream(
+			    request.getOutputStream());
 		    String s = dis.readUTF();
-		    
-		    if (s.equals("status")) dos.writeUTF(isIdle ? "idle" : "busy");
+
+		    if (s.equals("status"))
+			dos.writeUTF(isIdle ? "idle" : "busy");
 		    dos.flush();
 		    request.close();
 		} catch (IOException e) {
 		    e.printStackTrace();
 		}
 	    }
-	    
+
 	}
     }
-    
+
     public static void main(String[] args) {
 	MapperClient client = new MapperClient();
 
-
 	// TODO client.loadConfig(args[0]); // load configuration file
 	client.openSocket(); // create a socket for listenting to the master
-	
+
 	/* Start another server to respond the status request */
 	client.statusReportThread();
-	
+
 	// node
 	// communication (get reducer ip, master ip)
 	client.getInitialInfo();
