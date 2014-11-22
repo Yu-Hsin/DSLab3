@@ -1,7 +1,8 @@
 import java.io.BufferedReader;
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Constructor;
@@ -15,14 +16,15 @@ import java.util.List;
 
 public class ReducerClient {
     
-    private static final int statusPort = 7070;
-    private ServerSocket socketStatus;
-    private boolean isIdle = true;
+    private static int mapperPort, masterPort, statusPort;
     
+    
+    private ServerSocket socketStatus;
+    private MapReduceTask mTask;
 
     private ServerSocket reducerToMapper, reducerToMaster;
-    private static int port2mapper = 7000, port2master = 2002;
-    private String reducerClass = "TestReducer", reducerFunction = "reduce"; //mapperClass = run
+    
+    private String reducerClass, reducerFunction; //mapperClass = run
     private Map <String, List <String>> map;
 
 
@@ -36,8 +38,8 @@ public class ReducerClient {
      */
     public void openSocket() {
 	try {
-	    reducerToMapper = new ServerSocket(port2mapper);
-	    reducerToMaster = new ServerSocket(port2master);
+	    reducerToMapper = new ServerSocket(mapperPort);
+	    reducerToMaster = new ServerSocket(masterPort);
 	    
 	    ConnectionService cs = new ConnectionService(reducerToMapper);
 	    new Thread(cs).start();
@@ -46,11 +48,14 @@ public class ReducerClient {
 	}
     }
     
+    public void setTask(MapReduceTask m) {
+	reducerClass = mTask.getMapperClass();
+	reducerFunction = mTask.getMapperFunc();
+    }
     
-    /*
     public void getInitialInfo() {
 	try {
-	    Socket socket = socketToMaster.accept();
+	    Socket socket = reducerToMaster.accept();
 
 	    System.out
 		    .println("Getting initial information for current task...");
@@ -60,14 +65,15 @@ public class ReducerClient {
 	    Object obj = ois.readObject();
 	    if (obj instanceof MapReduceTask)
 		mTask = (MapReduceTask) obj;
+	    setTask(mTask);
 	    ois.close();
 	    socket.close();
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
-    }*/
+    }
     
-    
+     
     public void ackMaster() {	
 	    try {
 		reducerToMaster.accept();
@@ -96,7 +102,6 @@ public class ReducerClient {
 		    e.printStackTrace();
 		}
 	    }
-	    
 	}
     }
     
@@ -130,7 +135,6 @@ public class ReducerClient {
     }
     
 
-    
     public void execute() {
 	Process pro;
 	try {
@@ -159,6 +163,27 @@ public class ReducerClient {
 	
     }
     
+    public void downloadExec() {
+	try {
+	    Socket s = reducerToMaster.accept();
+	    InputStream in = s.getInputStream();
+	    DataInputStream dis = new DataInputStream(in);
+	    String fileName = dis.readUTF();
+	    FileOutputStream os = new FileOutputStream(fileName);
+
+	    byte[] byteArray = new byte[1024];
+	    int byteRead = 0;
+
+	    while ((byteRead = dis.read(byteArray, 0, byteArray.length)) != -1)
+		os.write(byteArray, 0, byteRead);
+
+	    os.close();
+
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
+    }
+    
     public void statusReportThread() {
 	try {
 	    socketStatus = new ServerSocket(statusPort);
@@ -171,13 +196,17 @@ public class ReducerClient {
     
         
     public static void main (String [] args) {
+	mapperPort = Integer.parseInt(args[0]);
+	masterPort = Integer.parseInt(args[1]);
+	statusPort = Integer.parseInt(args[2]);
+	
 	ReducerClient client = new ReducerClient();
 	
 	client.openSocket();//create a socket for listenting to the mapper node
-	
+	client.getInitialInfo();
 	/* Start another server to respond the status request */
 	client.statusReportThread();
-	
+	client.downloadExec();
 	client.ackMaster(); //wait for the message from master
 	client.execute(); //exec
     }

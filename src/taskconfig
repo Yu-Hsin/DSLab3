@@ -1,6 +1,6 @@
 mapper 3
 reducer 3
-mapper_class NaiveBayes
+mapper_class TestMapper
 mapper_function map
-reducer_class NaiveBayes
+reducer_class TestReducer
 reducer_function reduce

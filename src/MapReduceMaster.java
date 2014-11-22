@@ -22,28 +22,24 @@ public class MapReduceMaster {
      *  All information to connect to slaves
      */
     private static final String configfile = "slaves";
-    private static final int masterPort = 8000;
+    private static final int masterPort = 5566;
     private static int mapperNum;
-    private static int mapperPort;
-    private static int mapperStatusPort;
     private static int reducerNum;
-    private static int reducerPort;
-    private static int reducerStatusPort;
 
     /*
      *  Here maintain the availability and loading of all slaves
      */
-    private static HashMap<String, Boolean> availableMapper = null;
-    private static HashMap<String, Boolean> availableReducer = null;
+    private static HashMap<Addr, Boolean> availableMapper = null;
+    private static HashMap<Addr, Boolean> availableReducer = null;
 
-    private static HashMap<String, Integer> loadingMapper = null;
-    private static HashMap<String, Integer> loadingReducer = null;
+    private static HashMap<Addr, Integer> loadingMapper = null;
+    private static HashMap<Addr, Integer> loadingReducer = null;
 
     /*
      *  Here maintains the load-balancing algorithm.
      */
-    private static LinkedList<String> roundrobinMapQueue = null;
-    private static LinkedList<String> roundrobinReduceQueue = null;
+    private static LinkedList<Addr> roundrobinMapQueue = null;
+    private static LinkedList<Addr> roundrobinReduceQueue = null;
     private static Object resourceLock = new Object();
 
     public static void main(String[] args) {
@@ -55,39 +51,33 @@ public class MapReduceMaster {
 	System.out.println("Initialization...");
 	try {
 	    BufferedReader configbr = new BufferedReader(new FileReader(configfile));
-	    availableMapper = new HashMap<String, Boolean>();
-	    availableReducer = new HashMap<String, Boolean>();
-	    loadingMapper = new HashMap<String, Integer>();
-	    loadingReducer = new HashMap<String, Integer>();
-	    roundrobinMapQueue = new LinkedList<String>();
-	    roundrobinReduceQueue = new LinkedList<String>();
+	    availableMapper = new HashMap<Addr, Boolean>();
+	    availableReducer = new HashMap<Addr, Boolean>();
+	    loadingMapper = new HashMap<Addr, Integer>();
+	    loadingReducer = new HashMap<Addr, Integer>();
+	    roundrobinMapQueue = new LinkedList<Addr>();
+	    roundrobinReduceQueue = new LinkedList<Addr>();
 
 	    String[] strs = configbr.readLine().split("\\s+");
 	    mapperNum = Integer.valueOf(strs[1]);
-	    strs = configbr.readLine().split("\\s+");
-	    mapperPort = Integer.valueOf(strs[1]);
-	    strs = configbr.readLine().split("\\s+");
-	    mapperStatusPort = Integer.valueOf(strs[1]);
 
 	    for (int i = 0; i < mapperNum; i++) {
-		String s = configbr.readLine();
-		availableMapper.put(s, false);
-		loadingMapper.put(s, 0);
-		roundrobinMapQueue.add(s);
+		strs = configbr.readLine().split("\\s+");
+		Addr addr = new Addr(strs[0], Integer.valueOf(strs[1]), Integer.valueOf(strs[2]));
+		availableMapper.put(addr, false);
+		loadingMapper.put(addr, 0);
+		roundrobinMapQueue.add(addr);
 	    }
 
 	    strs = configbr.readLine().split("\\s+");
 	    reducerNum = Integer.valueOf(strs[1]);
-	    strs = configbr.readLine().split("\\s+");
-	    reducerPort = Integer.valueOf(strs[1]);
-	    strs = configbr.readLine().split("\\s+");
-	    reducerStatusPort = Integer.valueOf(strs[1]);
 
 	    for (int i = 0; i < reducerNum; i++) {
-		String s = configbr.readLine();
-		availableReducer.put(s, false);
-		loadingReducer.put(s, 0);
-		roundrobinReduceQueue.add(s);
+		strs = configbr.readLine().split("\\s+");
+		Addr addr = new Addr(strs[0], Integer.valueOf(strs[1]), Integer.valueOf(strs[2]));
+		availableReducer.put(addr, false);
+		loadingReducer.put(addr, 0);
+		roundrobinReduceQueue.add(addr);
 	    }
 
 	    configbr.close();
@@ -107,14 +97,14 @@ public class MapReduceMaster {
 
 	Socket connectSocket;
 	int activeMapper = 0, activeReducer = 0;
-	for (Map.Entry<String, Boolean> e : availableMapper.entrySet()) {
+	for (Map.Entry<Addr, Boolean> e : availableMapper.entrySet()) {
 	    try {
-		connectSocket = new Socket(e.getKey(), mapperStatusPort);
-
+		connectSocket = new Socket(e.getKey().ip, e.getKey().statusport);
+		
 		DataOutputStream dos = new DataOutputStream(connectSocket.getOutputStream());
 		dos.writeUTF("status");
 		dos.flush();
-
+		
 		DataInputStream din = new DataInputStream(connectSocket.getInputStream());
 		String result = din.readUTF();
 		if (result.equals("idle")) {
@@ -128,9 +118,9 @@ public class MapReduceMaster {
 	    } 
 	}
 
-	for (Map.Entry<String, Boolean> e : availableReducer.entrySet()) {
+	for (Map.Entry<Addr, Boolean> e : availableReducer.entrySet()) {
 	    try {
-		connectSocket = new Socket(e.getKey(), reducerStatusPort);
+		connectSocket = new Socket(e.getKey().ip, e.getKey().statusport);
 
 		DataOutputStream dos = new DataOutputStream(connectSocket.getOutputStream());
 		dos.writeUTF("status");
@@ -184,8 +174,8 @@ public class MapReduceMaster {
 
 	int requestMapper = mTask.getMapperNum();
 	int requestReducer = mTask.getReducerNum();
-	String[] resultMapper = new String[requestMapper];
-	String[] resultReducer = new String[requestReducer];
+	Addr[] resultMapper = new Addr[requestMapper];
+	Addr[] resultReducer = new Addr[requestReducer];
 	int mapIdx = 0, redIdx = 0;
 
 	/*
@@ -194,7 +184,7 @@ public class MapReduceMaster {
 	 */
 	synchronized (resourceLock) {
 	    while(mapIdx < requestMapper) {
-		String s = roundrobinMapQueue.poll();
+		Addr s = roundrobinMapQueue.poll();
 		if (availableMapper.get(s)) {
 		    resultMapper[mapIdx++] = s;
 		    loadingMapper.put(s, loadingMapper.get(s)+1);
@@ -204,7 +194,7 @@ public class MapReduceMaster {
 	    }
 
 	    while(redIdx < requestReducer) {
-		String s = roundrobinReduceQueue.poll();
+		Addr s = roundrobinReduceQueue.poll();
 		if (availableReducer.get(s)) {
 		    resultReducer[redIdx++] = s;
 		    loadingReducer.put(s, loadingReducer.get(s)+1);
@@ -216,10 +206,23 @@ public class MapReduceMaster {
 
 
 	/* Setting required informations */
-	mTask.setMapperIP(resultMapper);
-	mTask.setMapperPort(mapperPort);
-	mTask.setReducerIP(resultReducer);
-	mTask.setReducerPort(reducerPort);
+	String[] taskMappers = new String[mapperNum];
+	int[] taskMappersPort = new int[mapperNum];
+	for (int i = 0; i < mapperNum; i++) {
+	    taskMappers[i] = resultMapper[i].ip;
+	    taskMappersPort[i] = resultMapper[i].port;
+	}
+	mTask.setMapperIP(taskMappers);
+	mTask.setMapperPort(taskMappersPort);
+	
+	String[] taskReducers = new String[reducerNum];
+	int[] taskReducersPort = new int[reducerNum];
+	for (int i = 0; i < reducerNum; i++) {
+	    taskReducers[i] = resultMapper[i].ip;
+	    taskReducersPort[i] = resultReducer[i].port;
+	}
+	mTask.setReducerIP(taskReducers);
+	mTask.setReducerPort(taskReducersPort);
     }
 
     /**
@@ -227,10 +230,9 @@ public class MapReduceMaster {
      * @param maps
      * @param reduces
      */
-    private static void releaseResource(String[] maps, String[] reduces) {
+    private static void releaseResource(String[] maps, int[] mapports, String[] reduces, int[] redports) {
 	synchronized(resourceLock) {
-	    for (String s : maps) loadingMapper.put(s, loadingMapper.get(s)-1);
-	    for (String s : reduces) loadingReducer.put(s, loadingReducer.get(s)-1);
+	    //TODO
 	}
     }
 
@@ -269,8 +271,10 @@ public class MapReduceMaster {
 		    System.out.println("Receice a message from completed task...  Now release the resource...");
 		    String[] mapperRelease = ((MapReduceTask)obj).getMapperIP();
 		    String[] reducerRelease = ((MapReduceTask)obj).getReducerIP();
-
-		    releaseResource(mapperRelease, reducerRelease);
+		    int[] mapperIpRelease = ((MapReduceTask)obj).getMapperPort();
+		    int[] reducerIpRelease = ((MapReduceTask)obj).getReducerPort();
+		    
+		    releaseResource(mapperRelease, mapperIpRelease, reducerRelease, reducerIpRelease);
 		}
 
 		mSocket.close();
@@ -281,6 +285,30 @@ public class MapReduceMaster {
 		e.printStackTrace();
 	    }
 
+	}
+    }
+    
+    private static class Addr {
+	public String ip;
+	public int port;
+	public int statusport;
+	public Addr (String i, int p, int s) {
+	    ip = i;
+	    port = p;
+	    statusport = s;
+	}
+	
+	@Override
+	public int hashCode() {
+	    return (ip+" "+port).hashCode();
+	}
+	
+	@Override
+	public boolean equals(Object a) {
+	    if (!(a instanceof Addr)) return false;
+	    
+	    Addr addr = (Addr) a;
+	    return ip.equals(addr.ip) && port == addr.port;
 	}
     }
 }

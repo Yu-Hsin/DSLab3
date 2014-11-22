@@ -11,8 +11,8 @@ public class Master {
     private static String[] reducerIPs = null;
     private static int mapperNum;
     private static int reducerNum;
-    private static int mapperPort;
-    private static int reducerPort;
+    private static int[] mapperPort = null;
+    private static int[] reducerPort = null;
 
     private static String mapperClass = null;
     private static String mapperFunc = null;
@@ -22,15 +22,16 @@ public class Master {
     public static void main(String[] args) {
 	/*
 	 *  Check the standard input,
-	 *  Ex: java Master <config file> <jar file> <input file>
+	 *  Ex: java Master <config file> <mapper java file> <reducer java file> <input file>"
 	 */
-	if (args.length != 3) {
-	    System.out.println("Error input: java Master <config file> <jar file> <input file>");
+	if (args.length != 4) {
+	    System.out.println("Error input: java Master <config file> <mapper java file> <reducer java file> <input file>");
 	    return;
 	}
 	String configFile = args[0];
-	String jarFile = args[1];
-	String inputFile = args[2];
+	String mapperJavaFile = args[1];
+	String reducerJavaFile = args[2];
+	String inputFile = args[3];
 
 	/*
 	 *  1. Read in the configuration file
@@ -119,7 +120,7 @@ public class Master {
 	    System.out.println("Send the initial information(reducer number, IP...) to mappers...");
 	    Thread[] initialInfoThreads = new Thread[mapperNum];
 	    for (int i = 0; i < mapperNum; i++) {
-		initialInfoThreads[i] = new Thread(new InitialInfoThread(mapperIPs[i], mapperPort, mTask));
+		initialInfoThreads[i] = new Thread(new InitialInfoThread(mapperIPs[i], mapperPort[i], mTask));
 		initialInfoThreads[i].start();
 	    }
 	    
@@ -144,7 +145,7 @@ public class Master {
 	    System.out.println("Now transmit the Jar file and run Map function...");
 	    Thread[] sendJavaThreads = new Thread[mapperIPs.length];
 	    for (int i = 0; i < mapperIPs.length; i++) {
-		SendJarThread mJarSocketRunnable = new SendJarThread(mapperIPs[i], mapperPort, jarFile);
+		SendJavaThread mJarSocketRunnable = new SendJavaThread(mapperIPs[i], mapperPort[i], mapperJavaFile);
 		sendJavaThreads[i] = new Thread(mJarSocketRunnable);
 		sendJavaThreads[i].start();
 	    }
@@ -155,7 +156,7 @@ public class Master {
 	    System.out.println("Now run Reduce function...");
 	    Thread[] sendToReducers = new Thread[reducerNum];
 	    for (int i = 0; i < reducerNum; i++) {
-		sendToReducers[i] = new Thread(new SendReduceStartThread(reducerIPs[i], reducerPort));
+		sendToReducers[i] = new Thread(new SendJavaThread(reducerIPs[i], reducerPort[i], reducerJavaFile));
 		sendToReducers[i].start();
 	    }
 
@@ -180,7 +181,7 @@ public class Master {
 	    e.printStackTrace();
 	}
     }
-
+/*
     public static class SendReduceStartThread implements Runnable {
 	private Socket mSocket = null;
 	private String reducerIP = null;
@@ -212,7 +213,7 @@ public class Master {
 	    }
 	}
     }
-    
+   */ 
     public static class InitialInfoThread implements Runnable {
 	private Socket mSocket = null;
 	private String slaveIP = null;
@@ -248,9 +249,9 @@ public class Master {
 	private Socket mSocket = null;
 	private String filename;
 	private String[] slaves;
-	private int port;
+	private int[] port;
 
-	public SendFileThread(String[] s, int p, String fname) {
+	public SendFileThread(String[] s, int[] p, String fname) {
 	    slaves = s;
 	    port = p;
 	    filename = fname;
@@ -277,7 +278,7 @@ public class Master {
 
 		for (int slaveIdx = 0; slaveIdx < slaves.length; slaveIdx++) {
 		    //System.out.println(slaves[slaveIdx] + " " + port + "   ========");
-		    mSocket = new Socket(slaves[slaveIdx], port);
+		    mSocket = new Socket(slaves[slaveIdx], port[slaveIdx]);
 
 		    System.out.println("socket:  " + slaves[slaveIdx] + "  " + port);
 
@@ -323,13 +324,13 @@ public class Master {
 
 
 
-    public static class SendJarThread implements Runnable{
+    public static class SendJavaThread implements Runnable{
 	private Socket mSocket = null;
 	private String filename;
 	private String slave;
 	private int port;
 
-	public SendJarThread(String s, int p, String fname) {
+	public SendJavaThread(String s, int p, String fname) {
 	    slave = s;
 	    port = p;
 	    filename = fname;

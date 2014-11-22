@@ -18,10 +18,10 @@ import java.net.UnknownHostException;
 
 public class MapperClient {
 
-    private static final int portToMaster = 8000;
+    private static int portToMaster;
     private ServerSocket socketToMaster;
 
-    private static final int statusPort = 8080;
+    private static int statusPort;
     private ServerSocket socketStatus;
 
     private MapReduceTask mTask;
@@ -48,12 +48,12 @@ public class MapperClient {
     }
 
     public void setTask(MapReduceTask m) {
-	numReducer = mTask.getReducerNum();
+	numReducer = 5;//mTask.getReducerNum();
 	mapperClass = mTask.getMapperClass();
 	mapperFunction = mTask.getMapperFunc();
 	reducerIP = mTask.getReducerIP();
-	// jobID = mTask.getJobID(); //TODO
-	// reducerPort = mTask.getReducerPort(); //TODO
+	jobID = mTask.getJobID(); 
+	reducerPort = mTask.getReducerPort();
     }
 
     public void getInitialInfo() {
@@ -68,6 +68,7 @@ public class MapperClient {
 	    Object obj = ois.readObject();
 	    if (obj instanceof MapReduceTask)
 		mTask = (MapReduceTask) obj;
+	    setTask(mTask);
 	    ois.close();
 	    socket.close();
 	} catch (Exception e) {
@@ -206,6 +207,8 @@ public class MapperClient {
     }
 
     public static void main(String[] args) {
+	portToMaster = Integer.parseInt(args[0]);
+	statusPort = Integer.parseInt(args[1]);
 	MapperClient client = new MapperClient();
 	client.openSocket();// create a socket for listenting to the master
 	/* Start another server to respond the status request */
@@ -214,6 +217,7 @@ public class MapperClient {
 	client.downloadFile(); //download the split file from the master
 	client.downloadExec(); //download the java file from the master
 	client.execute(); //execute the java file, generate intermediate files
+	System.out.println("ALOHA");
 	client.distribute(); //send same keys to same reducers
     }
 

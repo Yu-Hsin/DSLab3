@@ -18,6 +18,7 @@ public class Status implements Runnable {
 	while (true) {
 	    try {
 		Socket request = mServer.accept();
+
 		DataInputStream dis = new DataInputStream(
 			request.getInputStream());
 		DataOutputStream dos = new DataOutputStream(
