@@ -1,8 +1,8 @@
 Mapper 3
-ghc53.ghc.andrew.cmu.edu 8000 8080
-ghc53.ghc.andrew.cmu.edu 8001 8081
-ghc53.ghc.andrew.cmu.edu 8002 8082
+ghc51.ghc.andrew.cmu.edu 8000 8080
+ghc51.ghc.andrew.cmu.edu 8001 8081
+ghc51.ghc.andrew.cmu.edu 8002 8082
 Reducer 3
-ghc54.ghc.andrew.cmu.edu 7000 7010 7020
-ghc54.ghc.andrew.cmu.edu 7001 7011 7021
-ghc54.ghc.andrew.cmu.edu 7002 7012 7022
+ghc52.ghc.andrew.cmu.edu 7000 7010 7020
+ghc52.ghc.andrew.cmu.edu 7001 7011 7021
+ghc52.ghc.andrew.cmu.edu 7002 7012 7022
