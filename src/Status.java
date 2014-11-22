@@ -12,7 +12,11 @@ public class Status implements Runnable {
     public Status(ServerSocket s) {
 	mServer = s;
     }
-
+    
+    public void setStatus (boolean b) {
+	isIdle = b;
+    }
+    
     @Override
     public void run() {
 	while (true) {
