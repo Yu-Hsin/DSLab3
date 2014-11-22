@@ -28,11 +28,11 @@ public class MapperClient {
     private String mapperClass, mapperFunction;
     private int numReducer;
     private String[] reducerIP;
-    private int [] reducerPort;
-    
+    private int[] reducerPort;
+
     private String jobID;
     private String localFnName = "";
-    
+
     private Socket toMasterSocket;
 
     /**
@@ -51,7 +51,7 @@ public class MapperClient {
 	mapperClass = mTask.getMapperClass();
 	mapperFunction = mTask.getMapperFunc();
 	reducerIP = mTask.getReducerIP();
-	jobID = mTask.getJobID(); 
+	jobID = mTask.getJobID();
 	reducerPort = mTask.getReducerPortToMapper();
     }
 
@@ -75,22 +75,22 @@ public class MapperClient {
 	}
     }
 
-    
     /**
      * download the file from the master node
      */
     public void downloadFile() {
 	try {
 	    Socket socket = socketToMaster.accept();
-	    ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());
+	    ObjectInputStream inputStream = new ObjectInputStream(
+		    socket.getInputStream());
 	    BufferedReader br = new BufferedReader(new InputStreamReader(
 		    inputStream));
 	    String str = "";
 
 	    str = br.readLine(); // read the number of the split file
 	    String fnName = String.format("%04d", Integer.parseInt(str));
-	    BufferedWriter bw = new BufferedWriter(new FileWriter(jobID + "_Part-"
-		    + fnName));
+	    BufferedWriter bw = new BufferedWriter(new FileWriter(jobID
+		    + "_Part-" + fnName));
 	    localFnName = jobID + "_Part-" + fnName;
 	    while ((str = br.readLine()) != null) {
 		bw.write(str);
@@ -106,7 +106,14 @@ public class MapperClient {
      * download the executable file from the master node
      */
     public void downloadExec() {
-	Utility.downloadExec(socketToMaster);
+	try {
+	    toMasterSocket = socketToMaster.accept();
+	    Utility.downloadExec(toMasterSocket);
+	} catch (IOException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}
+
     }
 
     public void execute() {
@@ -152,17 +159,15 @@ public class MapperClient {
     }
 
     public void distribute() {
-	//send files to the reducer
+	// send files to the reducer
 	for (int i = 0; i < numReducer; i++) {
 	    try {
-		System.out.println(reducerIP[i]);
-		System.out.println(reducerPort[i]);
 		Socket socket = new Socket(reducerIP[i], reducerPort[i]);
 
 		OutputStreamWriter dOut = new OutputStreamWriter(
 			socket.getOutputStream());
-		BufferedReader br = new BufferedReader(new FileReader(jobID + "_mapper"
-			+ i));
+		BufferedReader br = new BufferedReader(new FileReader(jobID
+			+ "_mapper" + i));
 		String str = "";
 		while ((str = br.readLine()) != null) {
 		    dOut.write(str + "\n");
@@ -194,14 +199,18 @@ public class MapperClient {
 	portToMaster = Integer.parseInt(args[0]);
 	statusPort = Integer.parseInt(args[1]);
 	MapperClient client = new MapperClient();
-	
-	client.openSocket();//create a socket for listenting to the master 
-	client.statusReportThread();//start another server to respond the status request
-	client.getInitialInfo();
-	client.downloadFile(); //download the split file from the master
-	client.downloadExec(); //download the java file from the master
-	client.execute(); //execute the java file, generate intermediate files
-	client.distribute(); //send same keys to same reducers
+	client.openSocket(); //create a socket for listenting to the master
+	client.statusReportThread(); //start another server to respond the status request
+	while (true) {
+	    System.out.println("[Mapper] Status: idle, wating for execution");
+	    client.getInitialInfo();
+	    System.out.println("[Mapper] Status: busy, start executing");
+	    client.downloadFile(); //download the split file from the master
+	    client.downloadExec(); //download the java file from the master
+	    client.execute(); //execute the java file, generate intermediate files
+	    client.distribute(); //send same keys to same reducers
+	    System.out.println("[Mapper] Status: finish execution");
+	}
     }
 
 }

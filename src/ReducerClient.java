@@ -14,24 +14,21 @@ import java.util.List;
 import Utils.Utility;
 
 public class ReducerClient {
-    
+
     private static int mapperPort, masterPort, statusPort;
-    
-    
+
     private ServerSocket socketStatus;
     private MapReduceTask mTask;
 
     private ServerSocket reducerToMapper, reducerToMaster;
-    
-    private String reducerClass, reducerFunction; //mapperClass = run
-    private static Map <String, List <String>> map;
 
+    private String reducerClass, reducerFunction; // mapperClass = run
+    private static Map<String, List<String>> map;
 
-    
-    public ReducerClient(){
-	map = new HashMap <String, List<String>>();
+    public ReducerClient() {
+	map = new HashMap<String, List<String>>();
     }
-    
+
     /**
      * open a socket for connection to the master
      */
@@ -39,22 +36,22 @@ public class ReducerClient {
 	try {
 	    reducerToMapper = new ServerSocket(mapperPort);
 	    reducerToMaster = new ServerSocket(masterPort);
-	    
+
 	    ConnectionService cs = new ConnectionService(reducerToMapper);
 	    new Thread(cs).start();
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
     }
-    
+
     public void setTask(MapReduceTask m) {
-	reducerClass = mTask.getMapperClass();
-	reducerFunction = mTask.getMapperFunc();
+	reducerClass = mTask.getReducerClass();
+	reducerFunction = mTask.getReducerFunc();
     }
-    
+
     public void getInitialInfo() {
 	try {
-	    
+
 	    Socket socket = reducerToMaster.accept();
 	    System.out.println("What the hack");
 	    System.out
@@ -72,25 +69,28 @@ public class ReducerClient {
 	    e.printStackTrace();
 	}
     }
-    
-     
-    public void ackMaster() {	
-	    try {
-		reducerToMaster.accept();
-	    } catch (IOException e) {
-		e.printStackTrace();
-	    }
+
+    public void waitForMaster() {
+	try {
+	    reducerToMaster.accept();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
     }
-	        
-    
-    
-    //connection to the mapper
+
+    public void ackMaster() {
+
+    }
+
+    // connection to the mapper
     public class ConnectionService implements Runnable {
 	Socket socket;
 	ServerSocket ss;
+
 	public ConnectionService(ServerSocket ss) {
 	    this.ss = ss;
 	}
+
 	@Override
 	public void run() {
 	    while (true) {
@@ -104,24 +104,27 @@ public class ReducerClient {
 	    }
 	}
     }
-    
+
     public class AcceptDataService implements Runnable {
 	Socket socket;
+
 	public AcceptDataService(Socket s) {
 	    socket = s;
 	}
+
 	@Override
 	public void run() {
 	    try {
-		//ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-		BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		// ObjectInputStream ois = new
+		// ObjectInputStream(socket.getInputStream());
+		BufferedReader br = new BufferedReader(new InputStreamReader(
+			socket.getInputStream()));
 		String str = "";
 		while ((str = br.readLine()) != null) {
-		    System.out.println(str);
-		    String [] strArr = str.split("\t");
-		    List <String> tmpList = map.get(strArr[0]);
+		    String[] strArr = str.split("\t");
+		    List<String> tmpList = map.get(strArr[0]);
 		    if (tmpList == null) {
-			tmpList = new ArrayList <String>();
+			tmpList = new ArrayList<String>();
 			tmpList.add(strArr[1]);
 			map.put(strArr[0], tmpList);
 		    } else {
@@ -131,14 +134,16 @@ public class ReducerClient {
 	    } catch (IOException e) {
 		e.printStackTrace();
 	    }
-	    
+
 	}
     }
-    
+
     public void execute() {
 	Process pro;
 	try {
-	    pro = Runtime.getRuntime().exec("javac " + reducerClass + ".java" ); //compile
+	    pro = Runtime.getRuntime().exec("javac " + reducerClass + ".java"); // compile
+	    pro.waitFor();
+	    pro = Runtime.getRuntime().exec("mkdir " + mTask.getJobID());
 	    pro.waitFor();
 	    Class<?> myClass = Class.forName(reducerClass);
 	    Class<?>[] paramsClass = new Class<?>[3];
@@ -148,25 +153,31 @@ public class ReducerClient {
 	    Constructor<?> myCons = myClass.getConstructor();
 	    Object object = myCons.newInstance();
 	    Method method = null;
-	    
+
 	    method = object.getClass().getMethod(reducerFunction, paramsClass);
-	    Output output = new Output(1, "Result");
-	    
+	    Output output = new Output(1, mTask.getJobID() + "/result");
+
 	    for (String key : map.keySet()) {
 		method.invoke(object, key, map.get(key), output);
 	    }
 	    output.close();
-	    
+
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
-	
+
     }
-    
+
     public void downloadExec() {
-	Utility.downloadExec(reducerToMaster);
+	try {
+	    Socket s = reducerToMaster.accept();
+	    Utility.downloadExec(s);
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
+
     }
-    
+
     public void statusReportThread() {
 	try {
 	    socketStatus = new ServerSocket(statusPort);
@@ -176,21 +187,28 @@ public class ReducerClient {
 	    e.printStackTrace();
 	}
     }
-    
-        
-    public static void main (String [] args) {
+
+    public static void main(String[] args) {
 	mapperPort = Integer.parseInt(args[0]);
 	masterPort = Integer.parseInt(args[1]);
 	statusPort = Integer.parseInt(args[2]);
-	
+
 	ReducerClient client = new ReducerClient();
-	
+
 	client.openSocket();//create a socket for listenting to the mapper node
 	client.statusReportThread(); //start another server to respond the status request
-	client.getInitialInfo();
-	client.downloadExec();	
-	client.ackMaster(); //wait for the message from master
-	client.execute(); //exec
+	
+	while (true) {
+	    System.out.println("[Reducer] Status: idle, wating for execution");
+	    map.clear();
+	    client.getInitialInfo();
+	    System.out.println("[Reducer] Status: busy, start executing");
+	    client.downloadExec();
+	    client.waitForMaster(); //wait for the message from master
+	    client.execute(); //exec
+	    client.ackMaster(); //tell master that you are done
+	    System.out.println("[Reducer] Status: finish execution");
+	}
     }
-    
+
 }

@@ -4,14 +4,12 @@ import java.io.DataInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Utility {
-    public static void downloadExec(ServerSocket ss) {
+    public static void downloadExec(Socket socket) {
 	try {
-	    Socket s = ss.accept();
-	    InputStream in = s.getInputStream();
+	    InputStream in = socket.getInputStream();
 	    DataInputStream dis = new DataInputStream(in);
 	    String fileName = dis.readUTF();
 	    FileOutputStream os = new FileOutputStream(fileName);
