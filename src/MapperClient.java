@@ -47,6 +47,8 @@ public class MapperClient {
     }
 
     public void setTask(MapReduceTask m) {
+	backReducerIP = mTask.getBackReducerIP();
+	backReducerPort = mTask.getBackReducerPortToMapper();
 	numReducer = mTask.getReducerNum();
 	mapperClass = mTask.getMapperClass();
 	mapperFunction = mTask.getMapperFunc();
@@ -160,6 +162,7 @@ public class MapperClient {
 
     public void distribute() {
 	// send files to the reducer
+	/*
 	for (int i = 0; i < numReducer; i++) {
 	    try {
 		Socket socket = new Socket(reducerIP[i], reducerPort[i]);
@@ -181,8 +184,36 @@ public class MapperClient {
 	    } catch (IOException e) {
 		e.printStackTrace();
 	    }
-	}
+	}*/
+	sendToReducer(reducerIP, reducerPort);
+	sendToReducer(backReducerIP, backReducerPort);
 	ackMaster();
+    }
+    
+    
+    public void sendToReducer(String [] inputIP, int [] inputPort) {
+	for (int i = 0; i < inputIP.length; i++) {
+	    try {
+		Socket socket = new Socket(inputIP[i], inputPort[i]);
+
+		OutputStreamWriter dOut = new OutputStreamWriter(
+			socket.getOutputStream());
+		BufferedReader br = new BufferedReader(new FileReader(jobID
+			+ "_mapper" + i));
+		String str = "";
+		while ((str = br.readLine()) != null) {
+		    dOut.write(str + "\n");
+		    dOut.flush();
+		}
+		br.close();
+		dOut.close();
+		socket.close();
+	    } catch (UnknownHostException e) {
+		e.printStackTrace();
+	    } catch (IOException e) {
+		e.printStackTrace();
+	    }
+	}
     }
 
     public void statusReportThread() {
