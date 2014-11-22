@@ -24,11 +24,11 @@ public class MapperClient {
     private ServerSocket socketStatus;
 
     private MapReduceTask mTask;
-
+    private Status status;
     private String mapperClass, mapperFunction;
     private int numReducer;
-    private String[] reducerIP;
-    private int[] reducerPort;
+    private String[] reducerIP, backReducerIP;
+    private int[] reducerPort, backReducerPort;
 
     private String jobID;
     private String localFnName = "";
@@ -188,7 +188,8 @@ public class MapperClient {
     public void statusReportThread() {
 	try {
 	    socketStatus = new ServerSocket(statusPort);
-	    Thread t = new Thread(new Status(socketStatus));
+	    status = new Status(socketStatus);
+	    Thread t = new Thread(status);
 	    t.start();
 	} catch (IOException e) {
 	    e.printStackTrace();
@@ -202,6 +203,7 @@ public class MapperClient {
 	client.openSocket(); //create a socket for listenting to the master
 	client.statusReportThread(); //start another server to respond the status request
 	while (true) {
+	    
 	    System.out.println("[Mapper] Status: idle, wating for execution");
 	    client.getInitialInfo();
 	    System.out.println("[Mapper] Status: busy, start executing");

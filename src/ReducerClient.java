@@ -1,11 +1,14 @@
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +19,7 @@ import Utils.Utility;
 public class ReducerClient {
 
     private static int mapperPort, masterPort, statusPort;
-
+    private static Status status;
     private ServerSocket socketStatus;
     private MapReduceTask mTask;
 
@@ -53,7 +56,7 @@ public class ReducerClient {
 	try {
 
 	    Socket socket = reducerToMaster.accept();
-	    System.out.println("What the hack");
+
 	    System.out
 		    .println("Getting initial information for current task...");
 	    ObjectInputStream ois = new ObjectInputStream(
@@ -78,7 +81,50 @@ public class ReducerClient {
 	}
     }
 
+    /*
+     * If the master send a reset message, that means the original reducer does
+     * not crash and this back-up reducer doesn't need to send the result back
+     * to the master. Otherwise, it sends the result back to the master node.
+     */
     public void ackMaster() {
+	try {
+	    Socket s = reducerToMaster.accept();
+	    System.out.println("Connect to master!");
+	    BufferedReader br = new BufferedReader(new InputStreamReader(
+		    s.getInputStream()));
+	    String str = br.readLine();
+	    if (str.equals("reset")) {
+		System.out.println("clear back-up result!");
+	    } else if (str.equals("request")) { // error handling
+		System.out.println("send the result to the master node");
+		sendResult(s);
+	    }
+
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
+    }
+
+    public void sendResult(Socket socket) {
+
+	try {
+	    OutputStreamWriter dOut = new OutputStreamWriter(
+		    socket.getOutputStream());
+	    BufferedReader br = new BufferedReader(new FileReader(
+		    mTask.getJobID() + "_result0"));
+	    String str = "";
+	    while ((str = br.readLine()) != null) {
+		dOut.write(str + "\n");
+		dOut.flush();
+	    }
+	    br.close();
+	    dOut.close();
+	    socket.close();
+	} catch (UnknownHostException e) {
+	    e.printStackTrace();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
 
     }
 
@@ -115,8 +161,6 @@ public class ReducerClient {
 	@Override
 	public void run() {
 	    try {
-		// ObjectInputStream ois = new
-		// ObjectInputStream(socket.getInputStream());
 		BufferedReader br = new BufferedReader(new InputStreamReader(
 			socket.getInputStream()));
 		String str = "";
@@ -143,8 +187,6 @@ public class ReducerClient {
 	try {
 	    pro = Runtime.getRuntime().exec("javac " + reducerClass + ".java"); // compile
 	    pro.waitFor();
-	    pro = Runtime.getRuntime().exec("mkdir " + mTask.getJobID());
-	    pro.waitFor();
 	    Class<?> myClass = Class.forName(reducerClass);
 	    Class<?>[] paramsClass = new Class<?>[3];
 	    paramsClass[0] = String.class;
@@ -155,7 +197,7 @@ public class ReducerClient {
 	    Method method = null;
 
 	    method = object.getClass().getMethod(reducerFunction, paramsClass);
-	    Output output = new Output(1, mTask.getJobID() + "/" + mTask.getMachineNum() + "_result");
+	    Output output = new Output(1, mTask.getJobID() + "_result");
 
 	    for (String key : map.keySet()) {
 		method.invoke(object, key, map.get(key), output);
@@ -181,7 +223,8 @@ public class ReducerClient {
     public void statusReportThread() {
 	try {
 	    socketStatus = new ServerSocket(statusPort);
-	    Thread t = new Thread(new Status(socketStatus));
+	    status = new Status(socketStatus);
+	    Thread t = new Thread(status);
 	    t.start();
 	} catch (IOException e) {
 	    e.printStackTrace();
@@ -195,18 +238,22 @@ public class ReducerClient {
 
 	ReducerClient client = new ReducerClient();
 
-	client.openSocket();//create a socket for listenting to the mapper node
-	client.statusReportThread(); //start another server to respond the status request
-	
+	client.openSocket(); // create a socket for listenting to the mapper
+			     // node
+	client.statusReportThread(); // start another server to respond the
+				     // status request
+
 	while (true) {
+	    status.setStatus(true);
 	    System.out.println("[Reducer] Status: idle, wating for execution");
 	    map.clear();
 	    client.getInitialInfo();
+	    status.setStatus(false);
 	    System.out.println("[Reducer] Status: busy, start executing");
 	    client.downloadExec();
-	    client.waitForMaster(); //wait for the message from master
-	    client.execute(); //exec
-	    client.ackMaster(); //tell master that you are done
+	    client.waitForMaster(); // wait for the message from master
+	    client.execute(); // exec
+	    client.ackMaster(); // tell master that you are done
 	    System.out.println("[Reducer] Status: finish execution");
 	}
     }
