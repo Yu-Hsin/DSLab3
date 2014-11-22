@@ -1,12 +1,9 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.OutputStreamWriter;
@@ -15,6 +12,8 @@ import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+
+import Utils.Utility;
 
 public class MapperClient {
 
@@ -107,24 +106,7 @@ public class MapperClient {
      * download the executable file from the master node
      */
     public void downloadExec() {
-	try {
-	    toMasterSocket = socketToMaster.accept();
-	    InputStream in = toMasterSocket.getInputStream();
-	    DataInputStream dis = new DataInputStream(in);
-	    String fileName = dis.readUTF();
-	    FileOutputStream os = new FileOutputStream(fileName);
-
-	    byte[] byteArray = new byte[1024];
-	    int byteRead = 0;
-
-	    while ((byteRead = dis.read(byteArray, 0, byteArray.length)) != -1)
-		os.write(byteArray, 0, byteRead);
-
-	    os.close();
-
-	} catch (IOException e) {
-	    e.printStackTrace();
-	}
+	Utility.downloadExec(socketToMaster);
     }
 
     public void execute() {
@@ -212,14 +194,13 @@ public class MapperClient {
 	portToMaster = Integer.parseInt(args[0]);
 	statusPort = Integer.parseInt(args[1]);
 	MapperClient client = new MapperClient();
-	client.openSocket();// create a socket for listenting to the master
-	/* Start another server to respond the status request */
-	client.statusReportThread();
+	
+	client.openSocket();//create a socket for listenting to the master 
+	client.statusReportThread();//start another server to respond the status request
 	client.getInitialInfo();
 	client.downloadFile(); //download the split file from the master
 	client.downloadExec(); //download the java file from the master
 	client.execute(); //execute the java file, generate intermediate files
-	System.out.println("ALOHA");
 	client.distribute(); //send same keys to same reducers
     }
 

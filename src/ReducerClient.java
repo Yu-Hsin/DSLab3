@@ -1,8 +1,5 @@
 import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Constructor;
@@ -13,6 +10,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+
+import Utils.Utility;
 
 public class ReducerClient {
     
@@ -136,7 +135,6 @@ public class ReducerClient {
 	}
     }
     
-
     public void execute() {
 	Process pro;
 	try {
@@ -166,25 +164,7 @@ public class ReducerClient {
     }
     
     public void downloadExec() {
-	try {
-	    
-	    Socket s = reducerToMaster.accept();
-	    InputStream in = s.getInputStream();
-	    DataInputStream dis = new DataInputStream(in);
-	    String fileName = dis.readUTF();
-	    FileOutputStream os = new FileOutputStream(fileName);
-
-	    byte[] byteArray = new byte[1024];
-	    int byteRead = 0;
-
-	    while ((byteRead = dis.read(byteArray, 0, byteArray.length)) != -1)
-		os.write(byteArray, 0, byteRead);
-
-	    os.close();
-
-	} catch (IOException e) {
-	    e.printStackTrace();
-	}
+	Utility.downloadExec(reducerToMaster);
     }
     
     public void statusReportThread() {
@@ -206,14 +186,9 @@ public class ReducerClient {
 	ReducerClient client = new ReducerClient();
 	
 	client.openSocket();//create a socket for listenting to the mapper node
-	/* Start another server to respond the status request */
-	client.statusReportThread();
+	client.statusReportThread(); //start another server to respond the status request
 	client.getInitialInfo();
-	
-	client.downloadExec();
-	System.out.println("=========");
-	System.out.println(map);
-	
+	client.downloadExec();	
 	client.ackMaster(); //wait for the message from master
 	client.execute(); //exec
     }
