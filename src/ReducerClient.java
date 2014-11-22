@@ -155,7 +155,7 @@ public class ReducerClient {
 	    Method method = null;
 
 	    method = object.getClass().getMethod(reducerFunction, paramsClass);
-	    Output output = new Output(1, mTask.getJobID() + "/result");
+	    Output output = new Output(1, mTask.getJobID() + "/" + mTask.getMachineNum() + "_result");
 
 	    for (String key : map.keySet()) {
 		method.invoke(object, key, map.get(key), output);
