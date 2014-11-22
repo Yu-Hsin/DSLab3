@@ -2,7 +2,6 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -17,26 +16,24 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-public class MapperClient { // rename to MapperClient
+public class MapperClient {
 
-    /*
-     * 2014/11/18 haopingh
-     */
+    private static final int portToMaster = 8000;
+    private ServerSocket socketToMaster;
+
     private static final int statusPort = 8080;
     private ServerSocket socketStatus;
-    private boolean isIdle = true;
 
-    private ObjectInputStream inputStream;
-    private ServerSocket socketclient;
-    private static int port2client = 8000;
-    private String mapperClass = "TestMapper", mapperFunction = "map"; // mapperClass
-    // = run
-    private int numReducer = 5;
+    private MapReduceTask mTask;
 
+    private String mapperClass, mapperFunction;
+    private int numReducer;
     private String[] reducerIP;
-    private static int port2reducer = 2000;
-
+    private int [] reducerPort;
+    
+    private String jobID;
     private String localFnName = "";
+    
     private Socket toMasterSocket;
 
     /**
@@ -44,15 +41,24 @@ public class MapperClient { // rename to MapperClient
      */
     public void openSocket() {
 	try {
-	    socketclient = new ServerSocket(port2client);
+	    socketToMaster = new ServerSocket(portToMaster);
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
     }
 
+    public void setTask(MapReduceTask m) {
+	numReducer = mTask.getReducerNum();
+	mapperClass = mTask.getMapperClass();
+	mapperFunction = mTask.getMapperFunc();
+	reducerIP = mTask.getReducerIP();
+	// jobID = mTask.getJobID(); //TODO
+	// reducerPort = mTask.getReducerPort();
+    }
+
     public void getInitialInfo() {
 	try {
-	    Socket socket = socketclient.accept();
+	    Socket socket = socketToMaster.accept();
 
 	    System.out
 		    .println("Getting initial information for current task...");
@@ -60,13 +66,8 @@ public class MapperClient { // rename to MapperClient
 		    socket.getInputStream());
 
 	    Object obj = ois.readObject();
-	    if (obj instanceof MapReduceTask) {
-		MapReduceTask mTask = (MapReduceTask) obj;
-		numReducer = mTask.getReducerNum();
-		mapperClass = mTask.getMapperClass();
-		mapperFunction = mTask.getMapperFunc();
-	    }
-
+	    if (obj instanceof MapReduceTask)
+		mTask = (MapReduceTask) obj;
 	    ois.close();
 	    socket.close();
 	} catch (IOException e) {
@@ -74,25 +75,25 @@ public class MapperClient { // rename to MapperClient
 	} catch (ClassNotFoundException e) {
 	    e.printStackTrace();
 	}
-
     }
 
+    
     /**
      * download the file from the master node
      */
     public void downloadFile() {
 	try {
-	    Socket socket = socketclient.accept();
-	    inputStream = new ObjectInputStream(socket.getInputStream());
+	    Socket socket = socketToMaster.accept();
+	    ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());
 	    BufferedReader br = new BufferedReader(new InputStreamReader(
 		    inputStream));
 	    String str = "";
 
 	    str = br.readLine(); // read the number of the split file
 	    String fnName = String.format("%04d", Integer.parseInt(str));
-	    BufferedWriter bw = new BufferedWriter(new FileWriter("Part-"
+	    BufferedWriter bw = new BufferedWriter(new FileWriter(jobID + "_Part-"
 		    + fnName));
-	    localFnName = "Part-" + fnName;
+	    localFnName = jobID + "_Part-" + fnName;
 	    while ((str = br.readLine()) != null) {
 		bw.write(str);
 		bw.write("\n");
@@ -108,7 +109,7 @@ public class MapperClient { // rename to MapperClient
      */
     public void downloadExec() {
 	try {
-	    toMasterSocket = socketclient.accept();
+	    toMasterSocket = socketToMaster.accept();
 	    InputStream in = toMasterSocket.getInputStream();
 	    DataInputStream dis = new DataInputStream(in);
 	    String fileName = dis.readUTF();
@@ -140,7 +141,7 @@ public class MapperClient { // rename to MapperClient
 	    Constructor<?> myCons = myClass.getConstructor();
 	    Object object = myCons.newInstance();
 	    Method method = null;
-	    Output output = new Output(numReducer, "MAPPER");
+	    Output output = new Output(numReducer, jobID + "_mapper");
 	    method = object.getClass().getMethod(mapperFunction, paramsClass);
 
 	    BufferedReader br = new BufferedReader(new FileReader(localFnName));
@@ -169,15 +170,15 @@ public class MapperClient { // rename to MapperClient
 	}
     }
 
-    public void distribute() { // TODO
+    public void distribute() {
 	// SEND FILE
 	for (int i = 0; i < numReducer; i++) {
 	    try {
-		Socket socket = new Socket(reducerIP[i], port2reducer);
+		Socket socket = new Socket(reducerIP[i], reducerPort[i]);
 
 		OutputStreamWriter dOut = new OutputStreamWriter(
 			socket.getOutputStream());
-		BufferedReader br = new BufferedReader(new FileReader("MAPPER"
+		BufferedReader br = new BufferedReader(new FileReader(jobID + "_mapper"
 			+ "i"));
 		String str = "";
 		while ((str = br.readLine()) != null) {
@@ -186,6 +187,7 @@ public class MapperClient { // rename to MapperClient
 		}
 		br.close();
 		dOut.close();
+		socket.close();
 	    } catch (UnknownHostException e) {
 		e.printStackTrace();
 	    } catch (IOException e) {
@@ -195,6 +197,7 @@ public class MapperClient { // rename to MapperClient
 	ackMaster();
     }
 
+    /*
     public class Sender implements Runnable {
 	Socket socket;
 	int fileIdx;
@@ -208,71 +211,28 @@ public class MapperClient { // rename to MapperClient
 	public void run() {
 
 	}
+    }*/
 
-    }
-
-    /**
-     * 2014/11/18 haopingh
-     */
     public void statusReportThread() {
 	try {
 	    socketStatus = new ServerSocket(statusPort);
-	    Thread t = new Thread(new StatusReportThread(socketStatus));
+	    Thread t = new Thread(new Status(socketStatus));
 	    t.start();
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
     }
 
-    private class StatusReportThread implements Runnable {
-	ServerSocket mServer = null;
-
-	public StatusReportThread(ServerSocket s) {
-	    mServer = s;
-	}
-
-	@Override
-	public void run() {
-	    while (true) {
-		try {
-		    Socket request = mServer.accept();
-
-		    DataInputStream dis = new DataInputStream(
-			    request.getInputStream());
-		    DataOutputStream dos = new DataOutputStream(
-			    request.getOutputStream());
-		    String s = dis.readUTF();
-
-		    if (s.equals("status"))
-			dos.writeUTF(isIdle ? "idle" : "busy");
-		    dos.flush();
-		    request.close();
-		} catch (IOException e) {
-		    e.printStackTrace();
-		}
-	    }
-
-	}
-    }
-
     public static void main(String[] args) {
 	MapperClient client = new MapperClient();
-
-	// TODO client.loadConfig(args[0]); // load configuration file
-	client.openSocket(); // create a socket for listenting to the master
-
+	client.openSocket();// create a socket for listenting to the master
 	/* Start another server to respond the status request */
 	client.statusReportThread();
-
-	// node
-	// communication (get reducer ip, master ip)
 	client.getInitialInfo();
-
-	client.downloadFile(); // download the split file from the master node
-	client.downloadExec(); // download the jar file from the master node
-	client.execute(); // execute the jar file, generate intermediate file
-	client.distribute(); // send same keys to same reducers
-	// master
+	client.downloadFile(); //download the split file from the master
+	client.downloadExec(); //download the java file from the master
+	client.execute(); //execute the java file, generate intermediate files
+	client.distribute(); //send same keys to same reducers
     }
 
 }
