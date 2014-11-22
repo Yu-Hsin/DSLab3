@@ -19,6 +19,7 @@ public class Output {
 	}
     }
     
+    //write key-value pair
     public void write (String key, String value) {
 	int index = numMachine > 1? Math.abs(key.hashCode()) % numMachine : 0;
 	try {
