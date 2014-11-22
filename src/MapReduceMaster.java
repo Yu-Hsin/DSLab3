@@ -74,8 +74,8 @@ public class MapReduceMaster {
 
 	    for (int i = 0; i < reducerNum; i++) {
 		strs = configbr.readLine().split("\\s+");
-		Addr addr = new Addr(strs[0], Integer.valueOf(strs[1]), Integer.valueOf(strs[2]));
-		addr.portToMapper = Integer.valueOf(strs[3]);
+		Addr addr = new Addr(strs[0], Integer.valueOf(strs[2]), Integer.valueOf(strs[3]));
+		addr.portToMapper = Integer.valueOf(strs[1]);
 		availableReducer.put(addr, false);
 		loadingReducer.put(addr, 0);
 		roundrobinReduceQueue.add(addr);
@@ -136,7 +136,7 @@ public class MapReduceMaster {
 	    } catch (UnknownHostException e1) {
 		e1.printStackTrace();
 	    } catch (IOException e1) {
-		System.out.println("Node " + e.getKey() + " is inactive...");
+		System.out.println("Node " + e.getKey().ip + " is inactive...");
 	    } 
 	}
 
@@ -222,7 +222,7 @@ public class MapReduceMaster {
 	int[] taskReducersPort = new int[requestReducer];
 	int[] taskReducersPortToMapper = new int[requestReducer];
 	for (int i = 0; i < requestReducer; i++) {
-	    taskReducers[i] = resultMapper[i].ip;
+	    taskReducers[i] = resultReducer[i].ip;
 	    taskReducersPort[i] = resultReducer[i].port;
 	    taskReducersPortToMapper[i] = resultReducer[i].portToMapper;
 	}

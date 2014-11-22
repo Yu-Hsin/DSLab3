@@ -1,5 +1,5 @@
 mapper 1
-reducer 0
+reducer 1
 mapper_class TestMapper
 mapper_function map
 reducer_class TestReducer
