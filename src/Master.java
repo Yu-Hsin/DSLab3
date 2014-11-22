@@ -122,6 +122,7 @@ public class Master {
 	    System.out.println("Send the initial information(reducer number, IP...) to mappers...");
 	    Thread[] initialInfoThreads = new Thread[mapperNum];
 	    for (int i = 0; i < mapperNum; i++) {
+		mTask.setMachineNum(i);
 		initialInfoThreads[i] = new Thread(new InitialInfoThread(mapperIPs[i], mapperPort[i], mTask));
 		initialInfoThreads[i].start();
 	    }
