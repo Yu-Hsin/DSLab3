@@ -3,7 +3,8 @@ public class TestMapper implements Mapper{
 
     @Override
     public void map(String value, Output output) {
-	output.write(value, "1");
+	for (String str : value.split("\\s+"))
+	    output.write(str, "1");
     }
 
 }

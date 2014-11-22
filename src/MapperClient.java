@@ -48,12 +48,12 @@ public class MapperClient {
     }
 
     public void setTask(MapReduceTask m) {
-	numReducer = 5;//mTask.getReducerNum();
+	numReducer = mTask.getReducerNum();
 	mapperClass = mTask.getMapperClass();
 	mapperFunction = mTask.getMapperFunc();
 	reducerIP = mTask.getReducerIP();
 	jobID = mTask.getJobID(); 
-	reducerPort = mTask.getReducerPort();
+	reducerPort = mTask.getReducerPortToMapper();
     }
 
     public void getInitialInfo() {
@@ -173,15 +173,17 @@ public class MapperClient {
 	//send files to the reducer
 	for (int i = 0; i < numReducer; i++) {
 	    try {
+		System.out.println(reducerIP[i]);
+		System.out.println(reducerPort[i]);
 		Socket socket = new Socket(reducerIP[i], reducerPort[i]);
 
 		OutputStreamWriter dOut = new OutputStreamWriter(
 			socket.getOutputStream());
 		BufferedReader br = new BufferedReader(new FileReader(jobID + "_mapper"
-			+ "i"));
+			+ i));
 		String str = "";
 		while ((str = br.readLine()) != null) {
-		    dOut.write(str);
+		    dOut.write(str + "\n");
 		    dOut.flush();
 		}
 		br.close();

@@ -25,7 +25,7 @@ public class ReducerClient {
     private ServerSocket reducerToMapper, reducerToMaster;
     
     private String reducerClass, reducerFunction; //mapperClass = run
-    private Map <String, List <String>> map;
+    private static Map <String, List <String>> map;
 
 
     
@@ -55,8 +55,9 @@ public class ReducerClient {
     
     public void getInitialInfo() {
 	try {
+	    
 	    Socket socket = reducerToMaster.accept();
-
+	    System.out.println("What the hack");
 	    System.out
 		    .println("Getting initial information for current task...");
 	    ObjectInputStream ois = new ObjectInputStream(
@@ -113,10 +114,11 @@ public class ReducerClient {
 	@Override
 	public void run() {
 	    try {
-		ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-		BufferedReader br = new BufferedReader(new InputStreamReader(ois));
+		//ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+		BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		String str = "";
 		while ((str = br.readLine()) != null) {
+		    System.out.println(str);
 		    String [] strArr = str.split("\t");
 		    List <String> tmpList = map.get(strArr[0]);
 		    if (tmpList == null) {
@@ -165,6 +167,7 @@ public class ReducerClient {
     
     public void downloadExec() {
 	try {
+	    
 	    Socket s = reducerToMaster.accept();
 	    InputStream in = s.getInputStream();
 	    DataInputStream dis = new DataInputStream(in);
@@ -203,10 +206,14 @@ public class ReducerClient {
 	ReducerClient client = new ReducerClient();
 	
 	client.openSocket();//create a socket for listenting to the mapper node
-	client.getInitialInfo();
 	/* Start another server to respond the status request */
 	client.statusReportThread();
+	client.getInitialInfo();
+	
 	client.downloadExec();
+	System.out.println("=========");
+	System.out.println(map);
+	
 	client.ackMaster(); //wait for the message from master
 	client.execute(); //exec
     }
