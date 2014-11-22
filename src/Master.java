@@ -71,6 +71,7 @@ public class Master {
 	 */
 	// Here initializes the information of a mapreduce task.
 	MapReduceTask mTask = new MapReduceTask();
+	mTask.setJobID();
 	mTask.setMapperNum(mapperNum);
 	mTask.setReducerNum(reducerNum);
 	mTask.setMapperClass(mapperClass);
@@ -95,8 +96,7 @@ public class Master {
 		reducerIPs = mTask.getReducerIP();
 		reducerPort = mTask.getReducerPort();
 
-		for (String s : reducerIPs) System.out.print(s + " ");
-		System.out.println();
+		System.out.println("in!!!!!");
 
 	    }
 	    else {
@@ -153,6 +153,26 @@ public class Master {
 	    for (int i = 0; i < sendJavaThreads.length; i++) sendJavaThreads[i].join();
 	    System.out.println("all Mappers finish.");
 
+	} catch (InterruptedException e) {
+	    e.printStackTrace();
+	}
+	
+	/*
+	 *  5. Send initial informaiton, java file to reducer
+	 */
+	try {
+	    
+	    System.out.println("Send the initial information(reducer number, IP...) to reducers...");
+	    Thread[] initialInfoThreads = new Thread[reducerNum];
+	    for (int i = 0; i < reducerNum; i++) {
+		initialInfoThreads[i] = new Thread(new InitialInfoThread(reducerIPs[i], reducerPort[i], mTask));
+		initialInfoThreads[i].start();
+	    }
+	    
+	    for (int i = 0; i < reducerNum; i++) initialInfoThreads[i].join();
+	    System.out.println("Initial information for reducers all set.");
+	    
+	    
 	    System.out.println("Now run Reduce function...");
 	    Thread[] sendToReducers = new Thread[reducerNum];
 	    for (int i = 0; i < reducerNum; i++) {
@@ -162,10 +182,11 @@ public class Master {
 
 	    for (int i = 0; i < reducerNum; i++) sendToReducers[i].join();
 	    System.out.println("All Reducers finish.");
-
 	} catch (InterruptedException e) {
 	    e.printStackTrace();
 	}
+	
+	
 
 	/*
 	 *  5. Tell the System Master the finish of the task,
