@@ -70,9 +70,7 @@ public class MapperClient {
 		mTask = (MapReduceTask) obj;
 	    ois.close();
 	    socket.close();
-	} catch (IOException e) {
-	    e.printStackTrace();
-	} catch (ClassNotFoundException e) {
+	} catch (Exception e) {
 	    e.printStackTrace();
 	}
     }

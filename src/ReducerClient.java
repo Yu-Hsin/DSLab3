@@ -15,9 +15,6 @@ import java.util.List;
 
 public class ReducerClient {
     
-    /*
-     * 2014/11/18 haopingh
-     */
     private static final int statusPort = 7070;
     private ServerSocket socketStatus;
     private boolean isIdle = true;
@@ -48,6 +45,28 @@ public class ReducerClient {
 	    e.printStackTrace();
 	}
     }
+    
+    
+    /*
+    public void getInitialInfo() {
+	try {
+	    Socket socket = socketToMaster.accept();
+
+	    System.out
+		    .println("Getting initial information for current task...");
+	    ObjectInputStream ois = new ObjectInputStream(
+		    socket.getInputStream());
+
+	    Object obj = ois.readObject();
+	    if (obj instanceof MapReduceTask)
+		mTask = (MapReduceTask) obj;
+	    ois.close();
+	    socket.close();
+	} catch (Exception e) {
+	    e.printStackTrace();
+	}
+    }*/
+    
     
     public void ackMaster() {	
 	    try {
@@ -140,50 +159,19 @@ public class ReducerClient {
 	
     }
     
-    /**
-     *  2014/11/18 haopingh
-     */
     public void statusReportThread() {
 	try {
 	    socketStatus = new ServerSocket(statusPort);
-	    Thread t = new Thread(new StatusReportThread(socketStatus));
+	    Thread t = new Thread(new Status(socketStatus));
 	    t.start();
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
     }
-
-    private class StatusReportThread implements Runnable {
-	ServerSocket mServer = null;
-	
-	public StatusReportThread(ServerSocket s) {
-	    mServer = s;
-	}
-
-	@Override
-	public void run() {
-	    while(true) {
-		try {
-		    Socket request = mServer.accept();
-		    
-		    DataInputStream dis = new DataInputStream(request.getInputStream());
-		    DataOutputStream dos = new DataOutputStream(request.getOutputStream());
-		    String s = dis.readUTF();
-		    
-		    if (s.equals("status")) dos.writeUTF(isIdle ? "idle" : "busy");
-		    dos.flush();
-		    request.close();
-		} catch (IOException e) {
-		    e.printStackTrace();
-		}
-	    }
-	}
-    }
     
+        
     public static void main (String [] args) {
 	ReducerClient client = new ReducerClient();
-	
-	
 	
 	client.openSocket();//create a socket for listenting to the mapper node
 	
