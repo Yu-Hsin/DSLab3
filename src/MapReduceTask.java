@@ -11,6 +11,7 @@ public class MapReduceTask implements Serializable{
     private String[] reducerIP = null;
     private int[] mapperPort = null;
     private int[] reducerPort = null;
+    private int[] reducerPortToMapper = null;
     
     private String mapperClass = null;
     private String mapperFunc = null;
@@ -29,6 +30,7 @@ public class MapReduceTask implements Serializable{
     public String[] getReducerIP() { return reducerIP; }
     public int[] getMapperPort() { return mapperPort; }
     public int[] getReducerPort() { return reducerPort; }
+    public int[] getReducerPortToMapper() { return reducerPortToMapper; }
     
     public String getMapperClass() { return mapperClass; } 
     public String getMapperFunc() { return mapperFunc; }
@@ -36,13 +38,14 @@ public class MapReduceTask implements Serializable{
     public String getReducerFunc() { return reducerFunc; }
     
     
-    public void setJobID(String s) { jobID = "job"+timestamp; timestamp++; }
+    public void setJobID() { jobID = "job"+timestamp; timestamp++; }
     public void setMapperNum(int n) { mapperNum = n; }
     public void setReducerNum(int n) { reducerNum = n; }
     public void setMapperIP(String[] s) { mapperIP = s; }
     public void setReducerIP(String[] s) { reducerIP = s; }
     public void setMapperPort(int[] p) { mapperPort = p; }
     public void setReducerPort(int[] p) { reducerPort = p; }
+    public void setReducerPortToMapper(int[] p) { reducerPortToMapper = p; }
     
     public void setMapperClass(String s) { mapperClass = s; }
     public void setMapperFunc(String s) { mapperFunc = s; }

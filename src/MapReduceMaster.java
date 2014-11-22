@@ -75,6 +75,7 @@ public class MapReduceMaster {
 	    for (int i = 0; i < reducerNum; i++) {
 		strs = configbr.readLine().split("\\s+");
 		Addr addr = new Addr(strs[0], Integer.valueOf(strs[1]), Integer.valueOf(strs[2]));
+		addr.portToMapper = Integer.valueOf(strs[3]);
 		availableReducer.put(addr, false);
 		loadingReducer.put(addr, 0);
 		roundrobinReduceQueue.add(addr);
@@ -192,7 +193,7 @@ public class MapReduceMaster {
 
 		roundrobinMapQueue.add(s);
 	    }
-
+	    
 	    while(redIdx < requestReducer) {
 		Addr s = roundrobinReduceQueue.poll();
 		if (availableReducer.get(s)) {
@@ -202,27 +203,32 @@ public class MapReduceMaster {
 
 		roundrobinReduceQueue.add(s);
 	    }
+	    
 	}
 
-
+	System.out.println(mapIdx + " " + mapperNum + " " + resultMapper.length);
 	/* Setting required informations */
-	String[] taskMappers = new String[mapperNum];
-	int[] taskMappersPort = new int[mapperNum];
-	for (int i = 0; i < mapperNum; i++) {
+	String[] taskMappers = new String[requestMapper];
+	int[] taskMappersPort = new int[requestMapper];
+	for (int i = 0; i < requestMapper; i++) {
 	    taskMappers[i] = resultMapper[i].ip;
 	    taskMappersPort[i] = resultMapper[i].port;
 	}
 	mTask.setMapperIP(taskMappers);
 	mTask.setMapperPort(taskMappersPort);
 	
-	String[] taskReducers = new String[reducerNum];
-	int[] taskReducersPort = new int[reducerNum];
-	for (int i = 0; i < reducerNum; i++) {
+	
+	String[] taskReducers = new String[requestReducer];
+	int[] taskReducersPort = new int[requestReducer];
+	int[] taskReducersPortToMapper = new int[requestReducer];
+	for (int i = 0; i < requestReducer; i++) {
 	    taskReducers[i] = resultMapper[i].ip;
 	    taskReducersPort[i] = resultReducer[i].port;
+	    taskReducersPortToMapper[i] = resultReducer[i].portToMapper;
 	}
 	mTask.setReducerIP(taskReducers);
 	mTask.setReducerPort(taskReducersPort);
+	mTask.setReducerPortToMapper(taskReducersPortToMapper);
     }
 
     /**
@@ -265,10 +271,9 @@ public class MapReduceMaster {
 		}
 
 		/* Wait for the task to be completed and release resources */
-		ois = new ObjectInputStream(mSocket.getInputStream());
 		obj = ois.readObject();
 		if (obj instanceof MapReduceTask) {
-		    System.out.println("Receice a message from completed task...  Now release the resource...");
+		    System.out.println("Receive a message from completed task...  Now release the resource...");
 		    String[] mapperRelease = ((MapReduceTask)obj).getMapperIP();
 		    String[] reducerRelease = ((MapReduceTask)obj).getReducerIP();
 		    int[] mapperIpRelease = ((MapReduceTask)obj).getMapperPort();
@@ -291,6 +296,7 @@ public class MapReduceMaster {
     private static class Addr {
 	public String ip;
 	public int port;
+	public int portToMapper;
 	public int statusport;
 	public Addr (String i, int p, int s) {
 	    ip = i;
