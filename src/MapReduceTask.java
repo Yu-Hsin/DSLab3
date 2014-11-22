@@ -13,17 +13,41 @@ public class MapReduceTask implements Serializable{
     private int[] reducerPort = null;
     private int[] reducerPortToMapper = null;
     
+    /*
+     *  Back up reducer node
+     */
+    private String[] backReducerIP = null;
+    private int[] backReducerPort = null;
+    private int[] backReducerPortToMapper = null;
+    
     private String mapperClass = null;
     private String mapperFunc = null;
     private String reducerClass = null;
     private String reducerFunc = null;
     
     private String jobID = null;
-    private static int timestamp = 2;
+    private static int timestamp = 0;
     
     private int machineNum;
     
     public MapReduceTask() {}
+    
+    public MapReduceTask(MapReduceTask t) {
+	mapperNum = t.mapperNum;
+	reducerNum = t.reducerNum;
+	mapperIP = t.mapperIP;
+	reducerIP = t.reducerIP;
+	mapperPort = t.mapperPort;
+	reducerPort = t.reducerPort;
+	reducerPortToMapper = t.reducerPortToMapper;
+	
+	mapperClass = t.mapperClass;
+	mapperFunc = t.mapperFunc;
+	reducerClass = t.reducerClass;
+	reducerFunc = t.reducerFunc;
+	
+	jobID = t.jobID;
+    }
     
     public String getJobID() { return jobID; }
     public int getMapperNum() { return mapperNum; }
@@ -40,6 +64,10 @@ public class MapReduceTask implements Serializable{
     public String getReducerFunc() { return reducerFunc; }
     public int getMachineNum() { return machineNum; }
     
+    public String[] getBackReducerIP() { return backReducerIP; }
+    public int[] getBackReducerPort() { return backReducerPort; }
+    public int[] getBackReducerPortToMapper() { return backReducerPortToMapper; }
+    
     
     public void setJobID() { jobID = "job"+timestamp; timestamp++; }
     public void setMapperNum(int n) { mapperNum = n; }
@@ -55,4 +83,8 @@ public class MapReduceTask implements Serializable{
     public void setReducerClass(String s) { reducerClass = s; }
     public void setReducerFunc(String s) { reducerFunc = s; }
     public void setMachineNum(int i) { machineNum = i; }
+    
+    public void setBackReducerIP(String[] s) { backReducerIP = s; }
+    public void setBackReducerPort(int[] p) { backReducerPort = p; }
+    public void setBackReducerPortToMapper(int[] p) { backReducerPortToMapper = p; }
 }

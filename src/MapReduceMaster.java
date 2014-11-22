@@ -31,9 +31,6 @@ public class MapReduceMaster {
     private static HashMap<Addr, Boolean> availableMapper = null;
     private static HashMap<Addr, Boolean> availableReducer = null;
 
-    private static HashMap<Addr, Integer> loadingMapper = null;
-    private static HashMap<Addr, Integer> loadingReducer = null;
-
     /*
      *  Here maintains the load-balancing algorithm.
      */
@@ -52,8 +49,6 @@ public class MapReduceMaster {
 	    BufferedReader configbr = new BufferedReader(new FileReader(configfile));
 	    availableMapper = new HashMap<Addr, Boolean>();
 	    availableReducer = new HashMap<Addr, Boolean>();
-	    loadingMapper = new HashMap<Addr, Integer>();
-	    loadingReducer = new HashMap<Addr, Integer>();
 	    roundrobinMapQueue = new LinkedList<Addr>();
 	    roundrobinReduceQueue = new LinkedList<Addr>();
 
@@ -64,7 +59,6 @@ public class MapReduceMaster {
 		strs = configbr.readLine().split("\\s+");
 		Addr addr = new Addr(strs[0], Integer.valueOf(strs[1]), Integer.valueOf(strs[2]));
 		availableMapper.put(addr, false);
-		loadingMapper.put(addr, 0);
 		roundrobinMapQueue.add(addr);
 	    }
 
@@ -76,7 +70,6 @@ public class MapReduceMaster {
 		Addr addr = new Addr(strs[0], Integer.valueOf(strs[2]), Integer.valueOf(strs[3]));
 		addr.portToMapper = Integer.valueOf(strs[1]);
 		availableReducer.put(addr, false);
-		loadingReducer.put(addr, 0);
 		roundrobinReduceQueue.add(addr);
 	    }
 
@@ -173,39 +166,58 @@ public class MapReduceMaster {
      * then assign mappers, reducers to this task by setting its data members.
      * @param mTask
      */
-    private static void assignResource(MapReduceTask mTask) {
+    private static boolean assignResource(MapReduceTask mTask) {
 
 	int requestMapper = mTask.getMapperNum();
 	int requestReducer = mTask.getReducerNum();
 	Addr[] resultMapper = new Addr[requestMapper];
 	Addr[] resultReducer = new Addr[requestReducer];
-	int mapIdx = 0, redIdx = 0;
+	Addr[] resultBackReducer = new Addr[requestReducer];
+	int mapIdx = 0, redIdx = 0, redbackIdx = 0;
 
 	/*
 	 *  Add the most recently used IP to the end of queue.
 	 *  ** Here is critical section => lock
 	 */
 	synchronized (resourceLock) {
+	    int idx = 0;
 	    while(mapIdx < requestMapper) {
 		Addr s = roundrobinMapQueue.poll();
 		if (availableMapper.get(s)) {
 		    resultMapper[mapIdx++] = s;
-		    loadingMapper.put(s, loadingMapper.get(s)+1);
+		    availableMapper.put(s, false);
 		}
 
 		roundrobinMapQueue.add(s);
+		idx++;
+		if (idx == roundrobinMapQueue.size()) return false;
 	    }
 	    
+	    idx = 0;
 	    while(redIdx < requestReducer) {
 		Addr s = roundrobinReduceQueue.poll();
 		if (availableReducer.get(s)) {
 		    resultReducer[redIdx++] = s;
-		    loadingReducer.put(s, loadingReducer.get(s)+1);
+		    availableReducer.put(s, false);
 		}
 
 		roundrobinReduceQueue.add(s);
+		idx++;
+		if (idx == roundrobinReduceQueue.size()) return false;
 	    }
 	    
+	    idx = 0;
+	    while(redbackIdx < requestReducer) {
+		Addr s = roundrobinReduceQueue.poll();
+		if (availableReducer.get(s)) {
+		    resultBackReducer[redbackIdx++] = s;
+		    availableReducer.put(s, false);
+		}
+		
+		roundrobinReduceQueue.add(s);
+		idx++;
+		if (idx == roundrobinReduceQueue.size()) return false;
+	    }
 	}
 
 	System.out.println(mapIdx + " " + mapperNum + " " + resultMapper.length);
@@ -223,14 +235,27 @@ public class MapReduceMaster {
 	String[] taskReducers = new String[requestReducer];
 	int[] taskReducersPort = new int[requestReducer];
 	int[] taskReducersPortToMapper = new int[requestReducer];
+	
+	String[] taskBackReducers = new String[requestReducer];
+	int[] taskBackReducersPort = new int[requestReducer];
+	int[] taskBackReducersPortToMapper = new int[requestReducer];
 	for (int i = 0; i < requestReducer; i++) {
 	    taskReducers[i] = resultReducer[i].ip;
 	    taskReducersPort[i] = resultReducer[i].port;
 	    taskReducersPortToMapper[i] = resultReducer[i].portToMapper;
+	    
+	    taskBackReducers[i] = resultBackReducer[i].ip;
+	    taskBackReducersPort[i] = resultBackReducer[i].port;
+	    taskBackReducersPortToMapper[i] = resultBackReducer[i].statusport;
 	}
 	mTask.setReducerIP(taskReducers);
 	mTask.setReducerPort(taskReducersPort);
 	mTask.setReducerPortToMapper(taskReducersPortToMapper);
+	mTask.setBackReducerIP(taskBackReducers);
+	mTask.setBackReducerPort(taskBackReducersPort);
+	mTask.setBackReducerPortToMapper(taskBackReducersPortToMapper);
+	
+	return true;
     }
 
     /**
@@ -240,7 +265,8 @@ public class MapReduceMaster {
      */
     private static void releaseResource(String[] maps, int[] mapports, String[] reduces, int[] redports) {
 	synchronized(resourceLock) {
-	    //TODO
+	    for (int i = 0; i < maps.length; i++) availableMapper.put(new Addr(maps[0], mapports[0], 0), true);
+	    for (int i = 0; i < reduces.length; i++) availableReducer.put(new Addr(reduces[i], redports[i], 0), true);
 	}
     }
 

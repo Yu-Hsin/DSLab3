@@ -13,6 +13,9 @@ public class Master {
     private static int reducerNum;
     private static int[] mapperPort = null;
     private static int[] reducerPort = null;
+    
+    private static String[] reducerBackIPs = null;
+    private static int[] reducerBackPort = null;
 
     private static String mapperClass = null;
     private static String mapperFunc = null;
@@ -97,9 +100,8 @@ public class Master {
 		mapperPort = mTask.getMapperPort();
 		reducerIPs = mTask.getReducerIP();
 		reducerPort = mTask.getReducerPort();
-
-		System.out.println("in!!!!!");
-
+		reducerBackIPs = mTask.getBackReducerIP();
+		reducerBackPort = mTask.getBackReducerPort();
 	    }
 	    else {
 		System.out.println("Wrong Task Request...");
@@ -122,8 +124,9 @@ public class Master {
 	    System.out.println("Send the initial information(reducer number, IP...) to mappers...");
 	    Thread[] initialInfoThreads = new Thread[mapperNum];
 	    for (int i = 0; i < mapperNum; i++) {
-		mTask.setMachineNum(i);
-		initialInfoThreads[i] = new Thread(new InitialInfoThread(mapperIPs[i], mapperPort[i], mTask));
+		MapReduceTask newTask = new MapReduceTask(mTask);
+		newTask.setMachineNum(i);
+		initialInfoThreads[i] = new Thread(new InitialInfoThread(mapperIPs[i], mapperPort[i], newTask));
 		initialInfoThreads[i].start();
 	    }
 
@@ -167,21 +170,31 @@ public class Master {
 
 	    System.out.println("Send the initial information(reducer number, IP...) to reducers...");
 	    Thread[] initialInfoThreads = new Thread[reducerNum];
+	    Thread[] initialInfoBackThreads = new Thread[reducerNum];
 	    for (int i = 0; i < reducerNum; i++) {
-		mTask.setMachineNum(i);
-		initialInfoThreads[i] = new Thread(new InitialInfoThread(reducerIPs[i], reducerPort[i], mTask));
+		MapReduceTask newTask = new MapReduceTask(mTask);
+		newTask.setMachineNum(i);
+		initialInfoThreads[i] = new Thread(new InitialInfoThread(reducerIPs[i], reducerPort[i], newTask));
 		initialInfoThreads[i].start();
+		
+		initialInfoBackThreads[i] = new Thread(new InitialInfoThread(reducerBackIPs[i], reducerBackPort[i], newTask));
+		initialInfoBackThreads[i].start();
 	    }
-
+	    
 	    for (int i = 0; i < reducerNum; i++) initialInfoThreads[i].join();
+	    for (int i = 0; i < reducerNum; i++) initialInfoBackThreads[i].join();
 	    System.out.println("Initial information for reducers all set.");
 
 
 	    System.out.println("Now run Reduce function...");
 	    Thread[] sendToReducers = new Thread[reducerNum];
+	    Thread[] sendToBackReducers = new Thread[reducerNum];
 	    for (int i = 0; i < reducerNum; i++) {
 		sendToReducers[i] = new Thread(new SendJavaThread(reducerIPs[i], reducerPort[i], reducerJavaFile, false));
 		sendToReducers[i].start();
+		
+		sendToBackReducers[i] = new Thread(new SendJavaThread(reducerBackIPs[i], reducerBackPort[i], reducerJavaFile, false));
+		sendToBackReducers[i].start();
 	    }
 
 	    for (int i = 0; i < reducerNum; i++) sendToReducers[i].join();
