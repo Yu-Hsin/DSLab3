@@ -19,7 +19,9 @@ public class MapReduceTask implements Serializable{
     private String reducerFunc = null;
     
     private String jobID = null;
-    private static int timestamp = 0;
+    private static int timestamp = 2;
+    
+    private int machineNum;
     
     public MapReduceTask() {}
     
@@ -36,6 +38,7 @@ public class MapReduceTask implements Serializable{
     public String getMapperFunc() { return mapperFunc; }
     public String getReducerClass() { return reducerClass; }
     public String getReducerFunc() { return reducerFunc; }
+    public int getMachineNum() { return machineNum; }
     
     
     public void setJobID() { jobID = "job"+timestamp; timestamp++; }
@@ -51,4 +54,5 @@ public class MapReduceTask implements Serializable{
     public void setMapperFunc(String s) { mapperFunc = s; }
     public void setReducerClass(String s) { reducerClass = s; }
     public void setReducerFunc(String s) { reducerFunc = s; }
+    public void setMachineNum(int i) { machineNum = i; }
 }

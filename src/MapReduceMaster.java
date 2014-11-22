@@ -12,7 +12,6 @@ import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.HashMap;
 import java.util.*;
 
 
@@ -154,10 +153,13 @@ public class MapReduceMaster {
 		System.out.println("Receive a request... Create a new thread...");
 		Thread t = new Thread(new TaskRequestThread(mapreduceRequest));
 		t.start();
+		t.join();
 	    }
 
 	} catch (IOException e) {
 	    e.printStackTrace();
+	} catch (InterruptedException e1) {
+	    e1.printStackTrace();
 	}
 
 
@@ -268,7 +270,11 @@ public class MapReduceMaster {
 		    ObjectOutputStream oos = new ObjectOutputStream(mSocket.getOutputStream());
 		    oos.writeObject(obj);
 		    oos.flush();
+		    
 		}
+		
+		
+		System.out.println("Wait for finish......");
 
 		/* Wait for the task to be completed and release resources */
 		obj = ois.readObject();
