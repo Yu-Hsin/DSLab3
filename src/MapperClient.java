@@ -53,7 +53,7 @@ public class MapperClient {
 	mapperFunction = mTask.getMapperFunc();
 	reducerIP = mTask.getReducerIP();
 	// jobID = mTask.getJobID(); //TODO
-	// reducerPort = mTask.getReducerPort();
+	// reducerPort = mTask.getReducerPort(); //TODO
     }
 
     public void getInitialInfo() {
@@ -171,7 +171,7 @@ public class MapperClient {
     }
 
     public void distribute() {
-	// SEND FILE
+	//send files to the reducer
 	for (int i = 0; i < numReducer; i++) {
 	    try {
 		Socket socket = new Socket(reducerIP[i], reducerPort[i]);
@@ -196,22 +196,6 @@ public class MapperClient {
 	}
 	ackMaster();
     }
-
-    /*
-    public class Sender implements Runnable {
-	Socket socket;
-	int fileIdx;
-
-	public Sender(Socket socket, int idx) {
-	    this.socket = socket;
-	    fileIdx = idx;
-	}
-
-	@Override
-	public void run() {
-
-	}
-    }*/
 
     public void statusReportThread() {
 	try {
