@@ -10,8 +10,17 @@ public class MapReduceTask implements Serializable{
     private String[] mapperIP = null;
     private String[] reducerIP = null;
     private int[] mapperPort = null;
+    private int[] mapperStatusPort = null;
     private int[] reducerPort = null;
     private int[] reducerPortToMapper = null;
+    private int[] reducerStatusPort = null;
+    
+    /*
+     *  Back up master node
+     */
+    private String[] backMapperIP = null;
+    private int[] backMapperPort = null;
+    private int[] backMapperStatusPort = null;
     
     /*
      *  Back up reducer node
@@ -19,6 +28,7 @@ public class MapReduceTask implements Serializable{
     private String[] backReducerIP = null;
     private int[] backReducerPort = null;
     private int[] backReducerPortToMapper = null;
+    private int[] backReducerStatusPort = null;
     
     private String mapperClass = null;
     private String mapperFunc = null;
@@ -46,6 +56,18 @@ public class MapReduceTask implements Serializable{
 	reducerClass = t.reducerClass;
 	reducerFunc = t.reducerFunc;
 	
+	mapperStatusPort = t.mapperStatusPort;
+	reducerStatusPort = t.reducerStatusPort;
+	
+	backMapperIP = t.backMapperIP;
+	backMapperPort = t.backMapperPort;
+	backMapperStatusPort = t.backMapperStatusPort;
+	
+	backReducerIP = t.backReducerIP;
+	backReducerPort = t.backReducerPort;
+	backReducerPortToMapper = t.backReducerPortToMapper;
+	backReducerStatusPort = t.backReducerStatusPort;
+	
 	jobID = t.jobID;
     }
     
@@ -67,7 +89,15 @@ public class MapReduceTask implements Serializable{
     public String[] getBackReducerIP() { return backReducerIP; }
     public int[] getBackReducerPort() { return backReducerPort; }
     public int[] getBackReducerPortToMapper() { return backReducerPortToMapper; }
+    public int[] getBackReducerStatusPort() { return backReducerStatusPort; }
     
+    public int[] getMapperStatusPort() { return mapperStatusPort; }
+    public int[] getReducerStatusPort() { return reducerStatusPort; }
+    
+    public String[] getBackMapperIP() { return backMapperIP; }
+    public int[] getBackMapperPort() { return backMapperPort; }
+    public int[] getBackMapperStatusPort() { return backMapperStatusPort; }
+    //==================================================================
     
     public void setJobID() { jobID = "job"+timestamp; timestamp++; }
     public void setMapperNum(int n) { mapperNum = n; }
@@ -87,4 +117,12 @@ public class MapReduceTask implements Serializable{
     public void setBackReducerIP(String[] s) { backReducerIP = s; }
     public void setBackReducerPort(int[] p) { backReducerPort = p; }
     public void setBackReducerPortToMapper(int[] p) { backReducerPortToMapper = p; }
+    public void setBackReducerStatusPort(int[] p) { backReducerStatusPort = p; }
+    
+    public void setMapperStatusPort(int[] s) { mapperStatusPort = s; }
+    public void setReducerStatusPort(int[] s) { reducerStatusPort = s; }
+    
+    public void setBackMapperIP(String[] s) { backMapperIP = s; }
+    public void setBackMapperPort(int[] p) { backMapperPort = p; }
+    public void setBackMapperStatusPort(int[] p) { backMapperStatusPort = p; }
 }

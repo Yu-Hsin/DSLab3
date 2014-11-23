@@ -93,17 +93,14 @@ public class MapReduceMaster {
 	for (Map.Entry<Addr, Boolean> e : availableMapper.entrySet()) {
 	    try {
 		connectSocket = new Socket(e.getKey().ip, e.getKey().statusport);
-		
-		DataOutputStream dos = new DataOutputStream(connectSocket.getOutputStream());
-		dos.writeUTF("status");
-		dos.flush();
-		
+
 		DataInputStream din = new DataInputStream(connectSocket.getInputStream());
 		String result = din.readUTF();
 		if (result.equals("idle")) {
 		    e.setValue(true);
 		    activeMapper++;
 		}
+		connectSocket.close();
 	    } catch (UnknownHostException e1) {
 		e1.printStackTrace();
 	    } catch (IOException e1) {
@@ -171,9 +168,10 @@ public class MapReduceMaster {
 	int requestMapper = mTask.getMapperNum();
 	int requestReducer = mTask.getReducerNum();
 	Addr[] resultMapper = new Addr[requestMapper];
+	Addr[] resultBackMapper = new Addr[requestMapper];
 	Addr[] resultReducer = new Addr[requestReducer];
 	Addr[] resultBackReducer = new Addr[requestReducer];
-	int mapIdx = 0, redIdx = 0, redbackIdx = 0;
+	int mapIdx = 0, mapbackIdx = 0, redIdx = 0, redbackIdx = 0;
 
 	/*
 	 *  Add the most recently used IP to the end of queue.
@@ -185,6 +183,19 @@ public class MapReduceMaster {
 		Addr s = roundrobinMapQueue.poll();
 		if (availableMapper.get(s)) {
 		    resultMapper[mapIdx++] = s;
+		    availableMapper.put(s, false);
+		}
+
+		roundrobinMapQueue.add(s);
+		idx++;
+		if (idx == roundrobinMapQueue.size()) return false;
+	    }
+	    
+	    idx = 0;
+	    while(mapbackIdx < requestMapper) {
+		Addr s = roundrobinMapQueue.poll();
+		if (availableMapper.get(s)) {
+		    resultBackMapper[mapbackIdx++] = s;
 		    availableMapper.put(s, false);
 		}
 
@@ -224,29 +235,48 @@ public class MapReduceMaster {
 	/* Setting required informations */
 	String[] taskMappers = new String[requestMapper];
 	int[] taskMappersPort = new int[requestMapper];
+	int[] taskMappersStatusPort = new int[requestMapper];
+	
+	String[] taskBackMappers = new String[requestMapper];
+	int[] taskBackMappersPort = new int[requestMapper];
+	int[] taskBackMappersStatusPort = new int[requestMapper];
 	for (int i = 0; i < requestMapper; i++) {
 	    taskMappers[i] = resultMapper[i].ip;
 	    taskMappersPort[i] = resultMapper[i].port;
+	    taskMappersStatusPort[i] = resultMapper[i].statusport;
+	    
+	    taskBackMappers[i] = resultBackMapper[i].ip;
+	    taskBackMappersPort[i] = resultBackMapper[i].port;
+	    taskBackMappersStatusPort[i] = resultBackMapper[i].statusport;
 	}
 	mTask.setMapperIP(taskMappers);
 	mTask.setMapperPort(taskMappersPort);
+	mTask.setMapperStatusPort(taskBackMappersStatusPort);
+	
+	mTask.setBackMapperIP(taskBackMappers);
+	mTask.setBackMapperPort(taskBackMappersPort);
+	mTask.setBackMapperStatusPort(taskBackMappersStatusPort);
 	
 	
 	String[] taskReducers = new String[requestReducer];
 	int[] taskReducersPort = new int[requestReducer];
 	int[] taskReducersPortToMapper = new int[requestReducer];
+	int[] taskReducerStatusPort = new int[requestReducer];
 	
 	String[] taskBackReducers = new String[requestReducer];
 	int[] taskBackReducersPort = new int[requestReducer];
 	int[] taskBackReducersPortToMapper = new int[requestReducer];
+	int[] taskBackReducersStatusPort = new int[requestReducer];
 	for (int i = 0; i < requestReducer; i++) {
 	    taskReducers[i] = resultReducer[i].ip;
 	    taskReducersPort[i] = resultReducer[i].port;
 	    taskReducersPortToMapper[i] = resultReducer[i].portToMapper;
+	    taskReducerStatusPort[i] = resultReducer[i].statusport;
 	    
 	    taskBackReducers[i] = resultBackReducer[i].ip;
 	    taskBackReducersPort[i] = resultBackReducer[i].port;
-	    taskBackReducersPortToMapper[i] = resultBackReducer[i].statusport;
+	    taskBackReducersPortToMapper[i] = resultBackReducer[i].portToMapper;
+	    taskBackReducersStatusPort[i] = resultBackReducer[i].statusport;
 	}
 	mTask.setReducerIP(taskReducers);
 	mTask.setReducerPort(taskReducersPort);
@@ -254,6 +284,8 @@ public class MapReduceMaster {
 	mTask.setBackReducerIP(taskBackReducers);
 	mTask.setBackReducerPort(taskBackReducersPort);
 	mTask.setBackReducerPortToMapper(taskBackReducersPortToMapper);
+	mTask.setReducerStatusPort(taskReducerStatusPort);
+	mTask.setBackReducerStatusPort(taskBackReducersStatusPort);
 	
 	return true;
     }
