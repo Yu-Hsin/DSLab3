@@ -1,6 +1,6 @@
-mapper 5
-reducer 2
-mapper_class TestMapper
+mapper 2
+reducer 1
+mapper_class WordCountMapper
 mapper_function map
-reducer_class TestReducer
+reducer_class WordCountReducer
 reducer_function reduce

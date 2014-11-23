@@ -139,6 +139,7 @@ public class ResourceAllocator {
 
 	    while(true) {
 		
+		
 		System.out.println("[Allocator] current resources:");
 		System.out.println("   Mappers:");
 		Iterator<Addr> iter = roundrobinMapQueue.iterator();
@@ -205,7 +206,7 @@ public class ResourceAllocator {
 
 		roundrobinMapQueue.add(s);
 		idx++;
-		if (idx == roundrobinMapQueue.size()) return false;
+		if (idx >= roundrobinMapQueue.size()) return false;
 	    }
 	    
 	    idx = 0;
@@ -218,7 +219,7 @@ public class ResourceAllocator {
 
 		roundrobinMapQueue.add(s);
 		idx++;
-		if (idx == roundrobinMapQueue.size()) return false;
+		if (idx >= roundrobinMapQueue.size()) return false;
 	    }
 	    
 	    idx = 0;
@@ -231,7 +232,7 @@ public class ResourceAllocator {
 
 		roundrobinReduceQueue.add(s);
 		idx++;
-		if (idx == roundrobinReduceQueue.size()) return false;
+		if (idx >= roundrobinReduceQueue.size()) return false;
 	    }
 	    
 	    idx = 0;
@@ -244,7 +245,7 @@ public class ResourceAllocator {
 		
 		roundrobinReduceQueue.add(s);
 		idx++;
-		if (idx == roundrobinReduceQueue.size()) return false;
+		if (idx >= roundrobinReduceQueue.size()) return false;
 	    }
 	}
 
