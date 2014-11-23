@@ -1,5 +1,5 @@
 
-public class TestMapper implements Mapper{
+public class WordCountMapper implements Mapper{
 
     @Override
     public void map(String value, Output output) {

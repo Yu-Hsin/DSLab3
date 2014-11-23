@@ -94,14 +94,14 @@ public class ReducerClient {
      */
     public void ackMaster() {
 	try {
-	    
+
 	    Socket s = reducerToMaster.accept();
 	    System.out.println("Connect to master!");
 	    BufferedReader br = new BufferedReader(new InputStreamReader(
 		    s.getInputStream()));
-	    
+
 	    String str = br.readLine();
-	    
+
 	    System.out.println(str);
 	    if (Integer.parseInt(str) == 0) {
 		System.out.println("clear back-up result!");
@@ -141,7 +141,6 @@ public class ReducerClient {
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
-
     }
 
     /**
@@ -207,8 +206,14 @@ public class ReducerClient {
     public void execute() {
 	Process pro;
 	try {
-	    System.out.println("ready for execution");
+	    // This three lines gives you time to kill some process so that you
+	    // can simulate node failure and see if it recovers correctly
+	    /*
+	    System.out.println("ready for execution"); 
 	    Thread.sleep(10000);
+	    System.out.println("wake up");
+	    */
+	    
 	    pro = Runtime.getRuntime().exec("javac " + reducerClass + ".java"); // compile
 	    pro.waitFor();
 	    Class<?> myClass = Class.forName(reducerClass);
