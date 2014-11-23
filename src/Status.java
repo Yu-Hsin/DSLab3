@@ -1,4 +1,4 @@
-import java.io.DataInputStream;
+
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -23,14 +23,10 @@ public class Status implements Runnable {
 	    try {
 		Socket request = mServer.accept();
 
-		DataInputStream dis = new DataInputStream(
-			request.getInputStream());
 		DataOutputStream dos = new DataOutputStream(
 			request.getOutputStream());
-		String s = dis.readUTF();
 
-		if (s.equals("status"))
-		    dos.writeUTF(isIdle? "idle" : "busy");
+		dos.writeUTF(isIdle? "idle" : "busy");
 		dos.flush();
 		request.close();
 	    } catch (IOException e) {

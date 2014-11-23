@@ -19,8 +19,9 @@ public class Output {
 	}
     }
     
-    //write key-value pair
+    // write key-value pair
     public void write (String key, String value) {
+	// automatically handles which file to write 
 	int index = numMachine > 1? Math.abs(key.hashCode()) % numMachine : 0;
 	try {
 	    bw[index].write(key + "\t" + value + "\n");

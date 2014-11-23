@@ -1,7 +1,7 @@
 import java.util.List;
 
 
-public class TestReducer implements Reducer{
+public class WordCountReducer implements Reducer{
 
     @Override
     public void reduce(String key, List<String> values, Output output) {

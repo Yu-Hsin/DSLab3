@@ -1,12 +1,4 @@
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.DataOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
@@ -24,7 +16,7 @@ public class MapperClient {
     private ServerSocket socketStatus;
 
     private MapReduceTask mTask;
-    private Status status;
+    private static Status status;
     private String mapperClass, mapperFunction;
     private int numReducer;
     private String[] reducerIP, backReducerIP;
@@ -47,6 +39,8 @@ public class MapperClient {
     }
 
     public void setTask(MapReduceTask m) {
+	backReducerIP = mTask.getBackReducerIP();
+	backReducerPort = mTask.getBackReducerPortToMapper();
 	numReducer = mTask.getReducerNum();
 	mapperClass = mTask.getMapperClass();
 	mapperFunction = mTask.getMapperFunc();
@@ -116,6 +110,9 @@ public class MapperClient {
 
     }
 
+    /**
+     * Run the mapper function
+     */
     public void execute() {
 
 	Process pro;
@@ -144,6 +141,10 @@ public class MapperClient {
 	}
     }
 
+    /**
+     * Send the message to master telling it finishes sending the files to the
+     * reducers
+     */
     public void ackMaster() {
 	try {
 
@@ -160,10 +161,23 @@ public class MapperClient {
 
     public void distribute() {
 	// send files to the reducer
-	for (int i = 0; i < numReducer; i++) {
-	    try {
-		Socket socket = new Socket(reducerIP[i], reducerPort[i]);
+	sendToReducer(reducerIP, reducerPort);
+	// send files to the back up reducer
+	sendToReducer(backReducerIP, backReducerPort);
+	ackMaster();
+    }
 
+    /**
+     * 
+     * @param inputIP
+     *            a list of reducer's IP
+     * @param inputPort
+     *            a list of reducer's port number
+     */
+    public void sendToReducer(String[] inputIP, int[] inputPort) {
+	for (int i = 0; i < inputIP.length; i++) {
+	    try {
+		Socket socket = new Socket(inputIP[i], inputPort[i]);
 		OutputStreamWriter dOut = new OutputStreamWriter(
 			socket.getOutputStream());
 		BufferedReader br = new BufferedReader(new FileReader(jobID
@@ -182,7 +196,6 @@ public class MapperClient {
 		e.printStackTrace();
 	    }
 	}
-	ackMaster();
     }
 
     public void statusReportThread() {
@@ -196,22 +209,66 @@ public class MapperClient {
 	}
     }
 
+    public void waitForMaster() {
+	try {
+
+	    Socket s = socketToMaster.accept();
+	    System.out.println("Connect to master!");
+	    BufferedReader br = new BufferedReader(new InputStreamReader(
+		    s.getInputStream()));
+
+	    String str = br.readLine();
+	    
+	    if (Integer.parseInt(str) == 0) {
+		System.out.println("[Mapper] Received master's message and reset");
+		return;
+	    } else if (Integer.parseInt(str) == 1) { // error handling
+		System.out.println("[Mapper] Received master's message and starts running");
+		status.setStatus(false);
+		//The code commented below are used for testing error handling for mapper
+		
+		try {
+		    System.out.println("[Mapper] Force sleep");
+		    Thread.sleep(10000);
+		    System.out.println("[Mapper] Wake up");
+		} catch (InterruptedException e) {
+		    e.printStackTrace();
+		}
+		
+		this.downloadFile(); // download the split file from the master
+		this.downloadExec(); // download the java file from the master
+		this.execute(); // execute the java file, generate intermediate files
+		this.distribute(); // send same keys to same reducers
+		System.out.println("[Mapper] Status: finish execution");
+	    }
+
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
+    }
+
     public static void main(String[] args) {
 	portToMaster = Integer.parseInt(args[0]);
 	statusPort = Integer.parseInt(args[1]);
 	MapperClient client = new MapperClient();
-	client.openSocket(); //create a socket for listenting to the master
-	client.statusReportThread(); //start another server to respond the status request
+	client.openSocket(); // create a socket for listenting to the master
+	client.statusReportThread(); // start another server to respond the
+				     // status request
 	while (true) {
-	    
+	    status.setStatus(true);
 	    System.out.println("[Mapper] Status: idle, wating for execution");
 	    client.getInitialInfo();
 	    System.out.println("[Mapper] Status: busy, start executing");
-	    client.downloadFile(); //download the split file from the master
-	    client.downloadExec(); //download the java file from the master
-	    client.execute(); //execute the java file, generate intermediate files
-	    client.distribute(); //send same keys to same reducers
+	    
+	    client.waitForMaster();
+	    
+	    /*
+	    client.downloadFile(); // download the split file from the master
+	    client.downloadExec(); // download the java file from the master
+	    client.execute(); // execute the java file, generate intermediate files
+	    client.distribute(); // send same keys to same reducers
 	    System.out.println("[Mapper] Status: finish execution");
+	    */
 	}
     }
 

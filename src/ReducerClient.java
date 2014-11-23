@@ -52,6 +52,9 @@ public class ReducerClient {
 	reducerFunction = mTask.getReducerFunc();
     }
 
+    /**
+     * Get configuration information form the master and call setTask function
+     */
     public void getInitialInfo() {
 	try {
 
@@ -73,6 +76,9 @@ public class ReducerClient {
 	}
     }
 
+    /**
+     * wait for master's response and then proceed next step
+     */
     public void waitForMaster() {
 	try {
 	    reducerToMaster.accept();
@@ -81,21 +87,24 @@ public class ReducerClient {
 	}
     }
 
-    /*
+    /**
      * If the master send a reset message, that means the original reducer does
      * not crash and this back-up reducer doesn't need to send the result back
      * to the master. Otherwise, it sends the result back to the master node.
      */
     public void ackMaster() {
 	try {
+
 	    Socket s = reducerToMaster.accept();
 	    System.out.println("Connect to master!");
 	    BufferedReader br = new BufferedReader(new InputStreamReader(
 		    s.getInputStream()));
+
 	    String str = br.readLine();
-	    if (str.equals("reset")) {
+
+	    if (Integer.parseInt(str) == 0) {
 		System.out.println("clear back-up result!");
-	    } else if (str.equals("request")) { // error handling
+	    } else if (Integer.parseInt(str) == 1) { // error handling
 		System.out.println("send the result to the master node");
 		sendResult(s);
 	    }
@@ -105,6 +114,12 @@ public class ReducerClient {
 	}
     }
 
+    /**
+     * send the result through the given socket
+     * 
+     * @param socket
+     *            you can communicate with master through this socket
+     */
     public void sendResult(Socket socket) {
 
 	try {
@@ -125,10 +140,12 @@ public class ReducerClient {
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}
-
     }
 
-    // connection to the mapper
+    /**
+     * This class will instantiate a thread that keeps listining to the mapper
+     * nodes
+     */
     public class ConnectionService implements Runnable {
 	Socket socket;
 	ServerSocket ss;
@@ -182,9 +199,20 @@ public class ReducerClient {
 	}
     }
 
+    /**
+     * Run the reducer function
+     */
     public void execute() {
 	Process pro;
 	try {
+	    // This three lines gives you time to kill some process so that you
+	    // can simulate node failure and see if it recovers correctly
+	    /*
+	    System.out.println("[Reducer] Force to sleep"); 
+	    Thread.sleep(10000);
+	    System.out.println("[Reducer] wake up");
+	    */
+	    
 	    pro = Runtime.getRuntime().exec("javac " + reducerClass + ".java"); // compile
 	    pro.waitFor();
 	    Class<?> myClass = Class.forName(reducerClass);
@@ -210,6 +238,9 @@ public class ReducerClient {
 
     }
 
+    /**
+     * download java file from the master node
+     */
     public void downloadExec() {
 	try {
 	    Socket s = reducerToMaster.accept();
@@ -220,6 +251,9 @@ public class ReducerClient {
 
     }
 
+    /**
+     * Instantiae another thread to keep track the current status of the system
+     */
     public void statusReportThread() {
 	try {
 	    socketStatus = new ServerSocket(statusPort);
@@ -253,6 +287,7 @@ public class ReducerClient {
 	    client.downloadExec();
 	    client.waitForMaster(); // wait for the message from master
 	    client.execute(); // exec
+	    status.setStatus(true);
 	    client.ackMaster(); // tell master that you are done
 	    System.out.println("[Reducer] Status: finish execution");
 	}

@@ -7,6 +7,10 @@ import java.io.InputStream;
 import java.net.Socket;
 
 public class Utility {
+    /**
+     * The function downloads the java file from the master node
+     * @param socket
+     */
     public static void downloadExec(Socket socket) {
 	try {
 	    InputStream in = socket.getInputStream();
