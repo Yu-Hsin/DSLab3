@@ -259,16 +259,7 @@ public class MapperClient {
 	    System.out.println("[Mapper] Status: idle, wating for execution");
 	    client.getInitialInfo();
 	    System.out.println("[Mapper] Status: busy, start executing");
-	    
 	    client.waitForMaster();
-	    
-	    /*
-	    client.downloadFile(); // download the split file from the master
-	    client.downloadExec(); // download the java file from the master
-	    client.execute(); // execute the java file, generate intermediate files
-	    client.distribute(); // send same keys to same reducers
-	    System.out.println("[Mapper] Status: finish execution");
-	    */
 	}
     }
 
