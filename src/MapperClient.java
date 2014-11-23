@@ -218,17 +218,19 @@ public class MapperClient {
 		    s.getInputStream()));
 
 	    String str = br.readLine();
-	    System.out.println(str + "|");
+	    
 	    if (Integer.parseInt(str) == 0) {
+		System.out.println("[Mapper] Received master's message and reset");
 		return;
 	    } else if (Integer.parseInt(str) == 1) { // error handling
+		System.out.println("[Mapper] Received master's message and starts running");
 		status.setStatus(false);
 		//The code commented below are used for testing error handling for mapper
 		
 		try {
 		    System.out.println("[Mapper] Force sleep");
 		    Thread.sleep(10000);
-		    System.out.println("Wake up");
+		    System.out.println("[Mapper] Wake up");
 		} catch (InterruptedException e) {
 		    e.printStackTrace();
 		}

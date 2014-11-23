@@ -102,7 +102,6 @@ public class ReducerClient {
 
 	    String str = br.readLine();
 
-	    System.out.println(str);
 	    if (Integer.parseInt(str) == 0) {
 		System.out.println("clear back-up result!");
 	    } else if (Integer.parseInt(str) == 1) { // error handling
@@ -209,9 +208,9 @@ public class ReducerClient {
 	    // This three lines gives you time to kill some process so that you
 	    // can simulate node failure and see if it recovers correctly
 	    /*
-	    System.out.println("ready for execution"); 
+	    System.out.println("[Reducer] Force to sleep"); 
 	    Thread.sleep(10000);
-	    System.out.println("wake up");
+	    System.out.println("[Reducer] wake up");
 	    */
 	    
 	    pro = Runtime.getRuntime().exec("javac " + reducerClass + ".java"); // compile
