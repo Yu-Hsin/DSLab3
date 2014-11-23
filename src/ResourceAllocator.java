@@ -138,6 +138,23 @@ public class ResourceAllocator {
 	    ServerSocket mServer = new ServerSocket(masterPort);
 
 	    while(true) {
+		
+		System.out.println("[Allocator] current resources:");
+		System.out.println("   Mappers:");
+		Iterator<Addr> iter = roundrobinMapQueue.iterator();
+		while(iter.hasNext()) {
+		    Addr a = iter.next();
+		    System.out.print(a.ip+":"+a.port+" "+availableMapper.get(a)+",  ");
+		}
+		System.out.println();
+		System.out.println("   Reducers:");
+		iter = roundrobinReduceQueue.iterator();
+		while(iter.hasNext()) {
+		    Addr a = iter.next();
+		    System.out.print(a.ip+":"+a.port+" "+availableReducer.get(a)+",  ");
+		}
+		System.out.println();
+		
 		System.out.println("Wait for Map Reduce requests...");
 		Socket mapreduceRequest = mServer.accept();
 		System.out.println("Receive a request... Create a new thread...");
@@ -297,7 +314,7 @@ public class ResourceAllocator {
      */
     private static void releaseResource(String[] maps, int[] mapports, String[] reduces, int[] redports) {
 	synchronized(resourceLock) {
-	    for (int i = 0; i < maps.length; i++) availableMapper.put(new Addr(maps[0], mapports[0], 0), true);
+	    for (int i = 0; i < maps.length; i++) availableMapper.put(new Addr(maps[i], mapports[i], 0), true);
 	    for (int i = 0; i < reduces.length; i++) availableReducer.put(new Addr(reduces[i], redports[i], 0), true);
 	}
     }
@@ -338,11 +355,17 @@ public class ResourceAllocator {
 		obj = ois.readObject();
 		if (obj instanceof MapReduceTask) {
 		    System.out.println("Receive a message from completed task...  Now release the resource...");
-		    String[] mapperRelease = ((MapReduceTask)obj).getMapperIP();
-		    String[] reducerRelease = ((MapReduceTask)obj).getReducerIP();
-		    int[] mapperIpRelease = ((MapReduceTask)obj).getMapperPort();
-		    int[] reducerIpRelease = ((MapReduceTask)obj).getReducerPort();
+		    MapReduceTask mmTask = (MapReduceTask)obj;
+		    String[] mapperRelease = mmTask.getMapperIP();
+		    String[] reducerRelease = mmTask.getReducerIP();
+		    int[] mapperIpRelease = mmTask.getMapperPort();
+		    int[] reducerIpRelease = mmTask.getReducerPort();
 		    
+		    releaseResource(mapperRelease, mapperIpRelease, reducerRelease, reducerIpRelease);
+		    mapperRelease = mmTask.getBackMapperIP();
+		    mapperIpRelease = mmTask.getBackMapperPort();
+		    reducerRelease = mmTask.getBackReducerIP();
+		    reducerIpRelease = mmTask.getBackReducerPort();
 		    releaseResource(mapperRelease, mapperIpRelease, reducerRelease, reducerIpRelease);
 		}
 
