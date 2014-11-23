@@ -138,7 +138,7 @@ public class ResourceAllocator {
 	    ServerSocket mServer = new ServerSocket(masterPort);
 
 	    while(true) {
-		System.out.println("Wait for Map Reduce requests...");
+		
 		System.out.println("[Allocator] current resources:");
 		System.out.println("   Mappers:");
 		Iterator<Addr> iter = roundrobinMapQueue.iterator();
@@ -155,6 +155,7 @@ public class ResourceAllocator {
 		}
 		System.out.println();
 		
+		System.out.println("Wait for Map Reduce requests...");
 		Socket mapreduceRequest = mServer.accept();
 		System.out.println("Receive a request... Create a new thread...");
 		Thread t = new Thread(new TaskRequestThread(mapreduceRequest));
@@ -313,7 +314,7 @@ public class ResourceAllocator {
      */
     private static void releaseResource(String[] maps, int[] mapports, String[] reduces, int[] redports) {
 	synchronized(resourceLock) {
-	    for (int i = 0; i < maps.length; i++) availableMapper.put(new Addr(maps[0], mapports[0], 0), true);
+	    for (int i = 0; i < maps.length; i++) availableMapper.put(new Addr(maps[i], mapports[i], 0), true);
 	    for (int i = 0; i < reduces.length; i++) availableReducer.put(new Addr(reduces[i], redports[i], 0), true);
 	}
     }
