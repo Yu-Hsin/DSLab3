@@ -47,6 +47,7 @@ public class MapperClient {
     }
 
     public void setTask(MapReduceTask m) {
+	System.out.println("initialize the info at the reducer");
 	backReducerIP = mTask.getBackReducerIP();
 	backReducerPort = mTask.getBackReducerPortToMapper();
 	numReducer = mTask.getReducerNum();
@@ -118,6 +119,9 @@ public class MapperClient {
 
     }
 
+    /**
+     * Run the mapper function
+     */
     public void execute() {
 
 	Process pro;
@@ -146,6 +150,10 @@ public class MapperClient {
 	}
     }
 
+    /**
+     * Send the message to master telling it finishes sending the files to the
+     * reducers
+     */
     public void ackMaster() {
 	try {
 
@@ -163,39 +171,31 @@ public class MapperClient {
     public void distribute() {
 	// send files to the reducer
 	/*
-	for (int i = 0; i < numReducer; i++) {
-	    try {
-		Socket socket = new Socket(reducerIP[i], reducerPort[i]);
-
-		OutputStreamWriter dOut = new OutputStreamWriter(
-			socket.getOutputStream());
-		BufferedReader br = new BufferedReader(new FileReader(jobID
-			+ "_mapper" + i));
-		String str = "";
-		while ((str = br.readLine()) != null) {
-		    dOut.write(str + "\n");
-		    dOut.flush();
-		}
-		br.close();
-		dOut.close();
-		socket.close();
-	    } catch (UnknownHostException e) {
-		e.printStackTrace();
-	    } catch (IOException e) {
-		e.printStackTrace();
-	    }
-	}*/
+	 * for (int i = 0; i < numReducer; i++) { try { Socket socket = new
+	 * Socket(reducerIP[i], reducerPort[i]);
+	 * 
+	 * OutputStreamWriter dOut = new OutputStreamWriter(
+	 * socket.getOutputStream()); BufferedReader br = new BufferedReader(new
+	 * FileReader(jobID + "_mapper" + i)); String str = ""; while ((str =
+	 * br.readLine()) != null) { dOut.write(str + "\n"); dOut.flush(); }
+	 * br.close(); dOut.close(); socket.close(); } catch
+	 * (UnknownHostException e) { e.printStackTrace(); } catch (IOException
+	 * e) { e.printStackTrace(); } }
+	 */
 	sendToReducer(reducerIP, reducerPort);
 	sendToReducer(backReducerIP, backReducerPort);
 	ackMaster();
     }
-    
-    
-    public void sendToReducer(String [] inputIP, int [] inputPort) {
+
+    /**
+     * 
+     * @param inputIP a list of reducer's IP
+     * @param inputPort a list of reducer's port number
+     */
+    public void sendToReducer(String[] inputIP, int[] inputPort) {
 	for (int i = 0; i < inputIP.length; i++) {
 	    try {
 		Socket socket = new Socket(inputIP[i], inputPort[i]);
-
 		OutputStreamWriter dOut = new OutputStreamWriter(
 			socket.getOutputStream());
 		BufferedReader br = new BufferedReader(new FileReader(jobID
@@ -231,17 +231,19 @@ public class MapperClient {
 	portToMaster = Integer.parseInt(args[0]);
 	statusPort = Integer.parseInt(args[1]);
 	MapperClient client = new MapperClient();
-	client.openSocket(); //create a socket for listenting to the master
-	client.statusReportThread(); //start another server to respond the status request
+	client.openSocket(); // create a socket for listenting to the master
+	client.statusReportThread(); // start another server to respond the
+				     // status request
 	while (true) {
-	    
+
 	    System.out.println("[Mapper] Status: idle, wating for execution");
 	    client.getInitialInfo();
 	    System.out.println("[Mapper] Status: busy, start executing");
-	    client.downloadFile(); //download the split file from the master
-	    client.downloadExec(); //download the java file from the master
-	    client.execute(); //execute the java file, generate intermediate files
-	    client.distribute(); //send same keys to same reducers
+	    client.downloadFile(); // download the split file from the master
+	    client.downloadExec(); // download the java file from the master
+	    client.execute(); // execute the java file, generate intermediate
+			      // files
+	    client.distribute(); // send same keys to same reducers
 	    System.out.println("[Mapper] Status: finish execution");
 	}
     }
