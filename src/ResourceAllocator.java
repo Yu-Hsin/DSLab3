@@ -15,7 +15,7 @@ import java.net.UnknownHostException;
 import java.util.*;
 
 
-public class MapReduceMaster {
+public class ResourceAllocator {
 
     /*
      *  All information to connect to slaves
